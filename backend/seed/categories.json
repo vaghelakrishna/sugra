@@ -1,0 +1,5 @@
+[
+  { "_id": { "$oid": "66a000000000000000000001" }, "name": "Rings", "slug": "rings", "description": "Elegant rings for every occasion", "isActive": true },
+  { "_id": { "$oid": "66a000000000000000000002" }, "name": "Necklaces", "slug": "necklaces", "description": "Timeless necklaces and pendants", "isActive": true },
+  { "_id": { "$oid": "66a000000000000000000003" }, "name": "Earrings", "slug": "earrings", "description": "Handcrafted earrings", "isActive": true }
+]

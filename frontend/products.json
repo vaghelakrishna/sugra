@@ -1,0 +1,101 @@
+[
+  {
+    "title": "Classic Gold Ring",
+    "slug": "classic-gold-ring",
+    "description": "A refined 22k gold ring with a polished finish.",
+    "category": {
+      "$oid": "66a000000000000000000001"
+    },
+    "price": 24999,
+    "compareAtPrice": 27999,
+    "sku": "RING-GOLD-001",
+    "stock": 12,
+    "images": [
+      "https://images.unsplash.com/photo-1605100804763-247f67b3557e"
+    ],
+    "tags": [
+      "gold",
+      "ring",
+      "classic"
+    ],
+    "material": "22k Gold",
+    "status": "active",
+    "variants": [
+      {
+        "name": "Size 7",
+        "sku": "RING-GOLD-001-7",
+        "stock": 5
+      },
+      {
+        "name": "Size 8",
+        "sku": "RING-GOLD-001-8",
+        "stock": 7
+      }
+    ]
+  },
+  {
+    "title": "Diamond Halo Pendant",
+    "slug": "diamond-halo-pendant",
+    "description": "A delicate diamond halo pendant on an adjustable chain.",
+    "category": {
+      "$oid": "66a000000000000000000002"
+    },
+    "price": 45999,
+    "compareAtPrice": 49999,
+    "sku": "NECK-DIAMOND-001",
+    "stock": 4,
+    "images": [
+      "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f"
+    ],
+    "tags": [
+      "diamond",
+      "pendant",
+      "necklace"
+    ],
+    "material": "18k Gold",
+    "status": "active",
+    "variants": []
+  },
+  {
+    "title": "Pearl Drop Earrings",
+    "slug": "pearl-drop-earrings",
+    "description": "Freshwater pearl drop earrings with gold-tone detailing.",
+    "category": {
+      "$oid": "66a000000000000000000003"
+    },
+    "price": 8999,
+    "sku": "EAR-PEARL-001",
+    "stock": 18,
+    "images": [
+      "https://images.unsplash.com/photo-1635767798638-3e25273a8236"
+    ],
+    "tags": [
+      "pearl",
+      "earrings"
+    ],
+    "material": "Freshwater Pearl",
+    "status": "active",
+    "variants": []
+  },
+  {
+    "title": "Rose Gold Stackable Ring",
+    "slug": "rose-gold-stackable-ring",
+    "description": "A minimal rose gold band made for stacking.",
+    "category": {
+      "$oid": "66a000000000000000000001"
+    },
+    "price": 14999,
+    "sku": "RING-ROSE-001",
+    "stock": 3,
+    "images": [
+      "https://images.unsplash.com/photo-1611652022419-a9419f74343d"
+    ],
+    "tags": [
+      "rose-gold",
+      "ring"
+    ],
+    "material": "18k Rose Gold",
+    "status": "active",
+    "variants": []
+  }
+]

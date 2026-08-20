@@ -1,0 +1,5 @@
+import { useState } from 'react'
+import type { FormEvent } from 'react'
+import type { User } from '../types'
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+export default function Login({ onSuccess }: { onSuccess: (user: User, token: string) => void }) { const [error, setError] = useState(''); async function login(e: FormEvent<HTMLFormElement>) { e.preventDefault(); const f = new FormData(e.currentTarget); const r = await fetch(API + '/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: f.get('email'), password: f.get('password') }) }); const b = await r.json(); if (!r.ok || b.user.role !== 'admin') { setError(b.message || 'Admin access required'); return } onSuccess(b.user, b.token) } return <main className="login"><form onSubmit={login}><b>SUGRA</b><h1>Admin portal</h1><p>Sign in to manage your store.</p><input name="email" type="email" placeholder="Email address" required /><input name="password" type="password" placeholder="Password" required />{error && <p className="error">{error}</p>}<button className="primary">Sign in</button></form></main> }
