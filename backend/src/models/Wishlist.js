@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const wishlistItemSchema = new mongoose.Schema(
   {
     product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+    variantId: { type: mongoose.Schema.Types.ObjectId },
+    quantity: { type: Number, required: true, min: 1, default: 1 },
   },
   { timestamps: true }
 );
