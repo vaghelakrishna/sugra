@@ -39,12 +39,33 @@ exports.listCategories = asyncHandler(async (_req, res) => {
 
 exports.listInventory = asyncHandler(async (req, res) => {
   const filter = { status: 'active' }; if (req.query.lowStock === 'true') filter.stock = { $lte: Number(req.query.threshold) || 5 };
-  res.json({ data: await Product.find(filter).select('title sku stock variants status').sort({ stock: 1 }) });
+  res.json({ data: await Product.find(filter).select('title sku stock variants inventoryByLocation status').sort({ stock: 1 }) });
 });
 
 exports.adjustStock = asyncHandler(async (req, res) => {
   const quantity = Number(req.body.quantity); if (!Number.isInteger(quantity)) return res.status(400).json({ message: 'quantity must be an integer adjustment' });
-  const product = await Product.findByIdAndUpdate(req.params.id, { $inc: { stock: quantity } }, { new: true, runValidators: true });
-  if (!product || product.stock < 0) return res.status(400).json({ message: 'Invalid product or stock adjustment' });
+  const product = await Product.findById(req.params.id);
+  if (!product) return res.status(404).json({ message: 'Product not found' });
+  if (req.body.variantId) {
+    const variant = product.variants.id(req.body.variantId);
+    if (!variant) return res.status(404).json({ message: 'Variant not found' });
+    if (variant.stock + quantity < 0) return res.status(400).json({ message: 'Variant stock cannot be negative' });
+    variant.stock += quantity;
+    product.stock = product.variants.reduce((total, item) => total + item.stock, 0);
+  } else if (req.body.locationName) {
+    let location = product.inventoryByLocation.find(item => item.name === req.body.locationName);
+    if (!location) {
+      if (quantity < 0) return res.status(400).json({ message: 'Location stock cannot be negative' });
+      product.inventoryByLocation.push({ name: String(req.body.locationName).trim(), quantity });
+    } else {
+      if (location.quantity + quantity < 0) return res.status(400).json({ message: 'Location stock cannot be negative' });
+      location.quantity += quantity;
+    }
+    product.stock = product.inventoryByLocation.reduce((total, item) => total + item.quantity, 0);
+  } else {
+    if (product.stock + quantity < 0) return res.status(400).json({ message: 'Stock cannot be negative' });
+    product.stock += quantity;
+  }
+  await product.save();
   res.json({ data: product });
 });
