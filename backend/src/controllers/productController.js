@@ -1,4 +1,5 @@
 const Product = require('../models/Product');
+const Category = require('../models/Category');
 const mongoose = require('mongoose');
 const asyncHandler = require('../utils/asyncHandler');
 const slugify = require('../utils/slugify');
@@ -7,15 +8,25 @@ exports.listProducts = asyncHandler(async (req, res) => {
   const page = Math.max(Number.parseInt(req.query.page, 10) || 1, 1);
   const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 12, 1), 100);
   const filter = { status: 'active' };
-  if (req.query.category) filter.category = req.query.category;
+  if (req.query.category) {
+    const categoryValue = String(req.query.category);
+    if (mongoose.isObjectIdOrHexString(categoryValue)) filter.category = categoryValue;
+    else {
+      const category = await Category.findOne({ slug: categoryValue.toLowerCase(), isActive: true });
+      if (!category) return res.json({ data: [], pagination: { page, limit, total: 0, pages: 0 } });
+      filter.category = category._id;
+    }
+  }
   if (req.query.search) filter.$text = { $search: req.query.search };
   if (req.query.minPrice || req.query.maxPrice) {
     filter.price = {};
     if (req.query.minPrice) filter.price.$gte = Number(req.query.minPrice);
     if (req.query.maxPrice) filter.price.$lte = Number(req.query.maxPrice);
   }
+  const sortMap = { newest: { createdAt: -1 }, price_asc: { price: 1 }, price_desc: { price: -1 } };
+  const sort = sortMap[req.query.sort] || sortMap.newest;
   const [products, total] = await Promise.all([
-    Product.find(filter).populate('category', 'name slug').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
+    Product.find(filter).populate('category', 'name slug').sort(sort).skip((page - 1) * limit).limit(limit),
     Product.countDocuments(filter),
   ]);
   res.json({ data: products, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
