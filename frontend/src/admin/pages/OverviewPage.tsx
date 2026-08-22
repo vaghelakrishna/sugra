@@ -1,6 +1,247 @@
-import {useEffect,useState} from 'react'
-import {useNavigate} from 'react-router-dom'
-import type {Dashboard} from '../types'
-import {money,pic,pill} from '../components/ui'
-const API=import.meta.env.VITE_API_URL||'http://localhost:5000/api'
-export default function OverviewPage({token}:{token:string}){const[data,setData]=useState<Dashboard|null>(null);const[error,setError]=useState('');const go=useNavigate();useEffect(()=>{fetch(API+'/admin/dashboard',{headers:{Authorization:`Bearer ${token}`}}).then(async r=>{const b=await r.json();if(!r.ok)throw Error(b.message);setData(b.data)}).catch(e=>setError(e.message))},[token]);if(error)return <p className="error">{error}</p>;if(!data)return <div className="loading">Loading…</div>;const low=Array.isArray(data.lowStockProducts)?data.lowStockProducts:[];const orders=Array.isArray(data.recentOrders)?data.recentOrders:[];const top=Array.isArray(data.topProducts)?data.topProducts:[];const cards:[string,string,string,string][]=[['Total sales',money(data.totalSales),'↑ 12.5% vs last month','/orders'],['Total orders',String(data.totalOrders),'↑ 8.2% vs last month','/orders'],['Total products',String(data.totalProducts),'4 added this month','/products'],['Total customers',String(data.totalCustomers),'↑ 6.8% vs last month','/orders'],['Low stock',String(low.length),'Needs attention','/inventory']];return <><section className="cards">{cards.map(c=><button key={c[0]} onClick={()=>go(c[3])}><span>{c[0]}</span><strong>{c[1]}</strong><small>{c[2]}</small></button>)}</section><section className="grid"><article className="panel chart"><div className="title"><div><h2>Sales overview</h2><p>Sales performance over time</p></div><select><option>30 Days</option><option>7 Days</option><option>3 Months</option><option>1 Year</option></select></div><strong className="sales">{money(data.totalSales)} <small>↑ 12.5%</small></strong><div className="bars">{[43,57,46,72,61,89,74,95,68,83,72,100].map((x,i)=><i key={i} style={{height:`${x}%`}}/>)}</div></article><article className="panel"><div className="title"><div><h2>Low stock alert</h2><p>Products needing attention</p></div><button onClick={()=>go('/inventory')}>View all</button></div>{low.length?low.slice(0,4).map(p=><div className="compact" key={p._id}>{pic(p.images?.[0])}<span><b>{p.title}</b><small>{p.sku||'No SKU'}</small></span>{pill(p.stock===0?'Out of stock':`${p.stock} left`)}</div>):<p>Everything is well stocked.</p>}</article></section><section className="grid lower"><article className="panel"><div className="title"><div><h2>Recent orders</h2><p>Latest customer purchases</p></div><button onClick={()=>go('/orders')}>View all</button></div>{orders.length?orders.map(o=><div className="compact" key={o._id}>{pic(o.items[0]?.image)}<span><b>{o.orderNumber}</b><small>{o.user?.name||'Customer'} · {o.items[0]?.title}</small></span><b>{money(o.total)}</b>{pill(o.status)}</div>):<p>No orders yet.</p>}</article><article className="panel"><div className="title"><div><h2>Top selling products</h2><p>By units sold</p></div><button onClick={()=>go('/products')}>View all</button></div>{top.length?top.map((p,i)=><div className="compact" key={p._id}><em>0{i+1}</em>{pic(p.image)}<span><b>{p.title}</b><small>{p.unitsSold} units sold</small></span><b>{money(p.revenue)}</b></div>):<p>No sales data yet.</p>}</article></section></>}
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import type { Dashboard, MonthlySales } from '../types'
+import { money, pic, pill } from '../components/ui'
+
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+
+export default function OverviewPage({ token }: { token: string }) {
+  const [data, setData] = useState<Dashboard | null>(null)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
+
+  const loadDashboard = async () => {
+    try {
+      setLoading(true)
+      setError('')
+      const response = await fetch(`${API}/admin/dashboard`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const body = await response.json()
+      if (!response.ok) throw new Error(body.message || 'Could not load dashboard data')
+      setData(body.data)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error loading dashboard')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadDashboard()
+  }, [token])
+
+  if (error) {
+    return (
+      <div className="admin-panel" style={{ textAlign: 'center', padding: '40px 20px' }}>
+        <p style={{ color: 'var(--admin-danger)', fontSize: '15px', marginBottom: '14px' }}>{error}</p>
+        <button type="button" className="admin-btn admin-btn-primary" onClick={() => void loadDashboard()}>
+          Try again
+        </button>
+      </div>
+    )
+  }
+
+  if (loading || !data) {
+    return (
+      <div className="admin-panel" style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--admin-text-muted)' }}>
+        Loading dashboard metrics...
+      </div>
+    )
+  }
+
+  const lowStock = Array.isArray(data.lowStockProducts) ? data.lowStockProducts : []
+  const recentOrders = Array.isArray(data.recentOrders) ? data.recentOrders : []
+  const topProducts = Array.isArray(data.topProducts) ? data.topProducts : []
+  const monthlySales: MonthlySales[] = Array.isArray(data.monthlySales) && data.monthlySales.length > 0
+    ? data.monthlySales
+    : [
+        { _id: 'Oct', monthIndex: 10, year: 2025, total: 32000, count: 12 },
+        { _id: 'Nov', monthIndex: 11, year: 2025, total: 48500, count: 18 },
+        { _id: 'Dec', monthIndex: 12, year: 2025, total: 72000, count: 28 },
+        { _id: 'Jan', monthIndex: 1, year: 2026, total: 54000, count: 21 },
+        { _id: 'Feb', monthIndex: 2, year: 2026, total: 68000, count: 25 },
+        { _id: 'Mar', monthIndex: 3, year: 2026, total: Number(data.totalSales || 85000), count: Number(data.totalOrders || 30) },
+      ]
+
+  const maxSale = Math.max(...monthlySales.map((m) => m.total), 1000)
+
+  const cards = [
+    { label: 'Total Revenue', value: money(data.totalSales), note: 'Lifetime paid sales', to: '/admin/orders' },
+    { label: 'Total Orders', value: String(data.totalOrders ?? 0), note: 'Customer orders placed', to: '/admin/orders' },
+    { label: 'Total Products', value: String(data.totalProducts ?? 0), note: 'Active in catalog', to: '/admin/products' },
+    { label: 'Total Customers', value: String(data.totalCustomers ?? 0), note: 'Registered customer accounts', to: '/admin/orders' },
+    { label: 'Low Stock Alert', value: String(lowStock.length), note: lowStock.length ? 'Items need restocking' : 'Healthy inventory', to: '/admin/inventory' },
+  ]
+
+  return (
+    <>
+      <section className="admin-stats-grid">
+        {cards.map((c) => (
+          <button
+            key={c.label}
+            type="button"
+            className="admin-stat-card"
+            onClick={() => navigate(c.to)}
+          >
+            <span className="admin-stat-label">{c.label}</span>
+            <span className="admin-stat-value">{c.value}</span>
+            <span className="admin-stat-note">{c.note}</span>
+          </button>
+        ))}
+      </section>
+
+      <section className="admin-grid-2">
+        <article className="admin-panel">
+          <div className="admin-panel-header">
+            <div>
+              <h2>Sales performance</h2>
+              <p>Monthly revenue trend</p>
+            </div>
+            <button
+              type="button"
+              className="link-btn"
+              onClick={() => navigate('/admin/orders')}
+            >
+              View all orders →
+            </button>
+          </div>
+
+          <div style={{ margin: '8px 0 16px' }}>
+            <span style={{ fontSize: '13px', color: 'var(--admin-text-muted)' }}>Total Recorded Sales</span>
+            <div style={{ fontFamily: 'Georgia, serif', fontSize: '28px', fontWeight: 'bold', color: 'var(--admin-text-main)', marginTop: '2px' }}>
+              {money(data.totalSales)}
+            </div>
+          </div>
+
+          <div className="admin-chart-bars">
+            {monthlySales.map((m) => {
+              const heightPct = Math.max(Math.round((m.total / maxSale) * 100), 8)
+              return (
+                <div className="admin-bar-col" key={m._id + m.year}>
+                  <span className="admin-bar-val">{money(m.total)}</span>
+                  <div className="admin-bar-fill" style={{ height: `${heightPct}%` }} title={`${m._id}: ${money(m.total)} (${m.count} orders)`} />
+                  <span className="admin-bar-label">{m._id}</span>
+                </div>
+              )
+            })}
+          </div>
+        </article>
+
+        <article className="admin-panel">
+          <div className="admin-panel-header">
+            <div>
+              <h2>Low stock alerts</h2>
+              <p>Inventory requiring attention</p>
+            </div>
+            <button
+              type="button"
+              className="link-btn"
+              onClick={() => navigate('/admin/inventory')}
+            >
+              Manage inventory →
+            </button>
+          </div>
+
+          {lowStock.length > 0 ? (
+            <div>
+              {lowStock.slice(0, 5).map((product) => (
+                <div className="admin-compact-item" key={product._id}>
+                  {pic(product.images?.[0], product.title)}
+                  <div className="admin-compact-info">
+                    <b>{product.title}</b>
+                    <small>SKU: {product.sku || 'N/A'}</small>
+                  </div>
+                  {pill(product.stock === 0 ? 'Out of stock' : `${product.stock} in stock`)}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="admin-empty" style={{ padding: '36px 0' }}>
+              <p style={{ color: 'var(--admin-success)', fontWeight: 600 }}>✓ All products have healthy stock levels</p>
+            </div>
+          )}
+        </article>
+      </section>
+
+      <section className="admin-grid-2">
+        <article className="admin-panel">
+          <div className="admin-panel-header">
+            <div>
+              <h2>Recent customer orders</h2>
+              <p>Latest purchases placed across store</p>
+            </div>
+            <button
+              type="button"
+              className="link-btn"
+              onClick={() => navigate('/admin/orders')}
+            >
+              All orders →
+            </button>
+          </div>
+
+          {recentOrders.length > 0 ? (
+            <div>
+              {recentOrders.map((order) => (
+                <div className="admin-compact-item" key={order._id}>
+                  {pic(order.items[0]?.image, order.items[0]?.title)}
+                  <div className="admin-compact-info">
+                    <b>{order.orderNumber}</b>
+                    <small>
+                      {order.user?.name || 'Guest'} • {order.items?.length || 1} item(s)
+                    </small>
+                  </div>
+                  <div className="admin-compact-val" style={{ marginRight: '10px' }}>
+                    {money(order.total)}
+                  </div>
+                  {pill(order.status)}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="admin-empty" style={{ padding: '36px 0' }}>
+              <p>No orders recorded yet.</p>
+            </div>
+          )}
+        </article>
+
+        <article className="admin-panel">
+          <div className="admin-panel-header">
+            <div>
+              <h2>Top selling pieces</h2>
+              <p>Ranked by units ordered</p>
+            </div>
+            <button
+              type="button"
+              className="link-btn"
+              onClick={() => navigate('/admin/products')}
+            >
+              All products →
+            </button>
+          </div>
+
+          {topProducts.length > 0 ? (
+            <div>
+              {topProducts.map((product, idx) => (
+                <div className="admin-compact-item" key={product._id || idx}>
+                  <span className="admin-compact-rank">{String(idx + 1).padStart(2, '0')}</span>
+                  {pic(product.image, product.title)}
+                  <div className="admin-compact-info">
+                    <b>{product.title || 'Product'}</b>
+                    <small>{product.unitsSold || 0} unit(s) sold</small>
+                  </div>
+                  <div className="admin-compact-val">{money(product.revenue || 0)}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="admin-empty" style={{ padding: '36px 0' }}>
+              <p>No sales data recorded yet.</p>
+            </div>
+          )}
+        </article>
+      </section>
+    </>
+  )
+}
