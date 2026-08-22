@@ -9,6 +9,7 @@ router.get('/orders', controller.listAdminOrders);
 router.patch('/orders/:id/status', controller.updateOrderStatus);
 router.get('/reviews', reviewController.listAdminReviews);
 router.patch('/reviews/:id/status', reviewController.updateReviewStatus);
+router.delete('/reviews/:id', reviewController.deleteReview);
 router.get('/dashboard', adminController.dashboard);
 router.get('/products', adminController.listProducts);
 router.get('/categories', adminController.listCategories);
