@@ -33,3 +33,10 @@ exports.updateReviewStatus = asyncHandler(async (req, res) => {
   if (!review) return res.status(404).json({ message: 'Review not found' });
   res.json({ data: review });
 });
+
+exports.deleteReview = asyncHandler(async (req, res) => {
+  const review = await Review.findByIdAndDelete(req.params.id);
+  if (!review) return res.status(404).json({ message: 'Review not found' });
+  res.json({ message: 'Review deleted successfully' });
+});
+
