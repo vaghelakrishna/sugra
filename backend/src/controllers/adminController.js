@@ -6,15 +6,47 @@ const Review = require('../models/Review');
 const asyncHandler = require('../utils/asyncHandler');
 
 exports.dashboard = asyncHandler(async (_req, res) => {
-  const [sales, orders, customers, products, lowStock, recentOrders, topProducts, recentReviews] = await Promise.all([
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+  sixMonthsAgo.setDate(1);
+  sixMonthsAgo.setHours(0, 0, 0, 0);
+
+  const [sales, orders, customers, lowStock, products, recentOrders, topProducts, recentReviews, monthlySales] = await Promise.all([
     Order.aggregate([{ $match: { 'payment.status': 'paid' } }, { $group: { _id: null, total: { $sum: '$total' } } }]),
-    Order.countDocuments(), User.countDocuments({ role: 'customer' }), Product.find({ status: 'active', stock: { $lte: 5 } }).select('title sku stock').limit(20),
+    Order.countDocuments(),
+    User.countDocuments({ role: 'customer' }),
+    Product.find({ status: 'active', stock: { $lte: 5 } }).select('title sku stock images').limit(20),
     Product.countDocuments(),
-    Order.find().populate('user', 'name').sort({ createdAt: -1 }).limit(6),
+    Order.find().populate('user', 'name email').sort({ createdAt: -1 }).limit(6),
     Order.aggregate([{ $unwind: '$items' }, { $group: { _id: '$items.product', title: { $first: '$items.title' }, image: { $first: '$items.image' }, unitsSold: { $sum: '$items.quantity' }, revenue: { $sum: '$items.lineTotal' } } }, { $sort: { unitsSold: -1 } }, { $limit: 5 }]),
     Review.find().populate('user', 'name').populate('product', 'title images').sort({ createdAt: -1 }).limit(5),
+    Order.aggregate([
+      { $match: { 'payment.status': 'paid', createdAt: { $gte: sixMonthsAgo } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%b', date: '$createdAt' } },
+          monthIndex: { $first: { $month: '$createdAt' } },
+          year: { $first: { $year: '$createdAt' } },
+          total: { $sum: '$total' },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { year: 1, monthIndex: 1 } }
+    ])
   ]);
-  res.json({ data: { totalSales: sales[0]?.total || 0, totalOrders: orders, totalCustomers: customers, totalProducts: products, lowStockProducts: lowStock, recentOrders, topProducts, recentReviews } });
+  res.json({
+    data: {
+      totalSales: sales[0]?.total || 0,
+      totalOrders: orders,
+      totalCustomers: customers,
+      totalProducts: products,
+      lowStockProducts: lowStock,
+      recentOrders,
+      topProducts,
+      recentReviews,
+      monthlySales
+    }
+  });
 });
 
 exports.listProducts = asyncHandler(async (req, res) => {
