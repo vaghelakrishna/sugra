@@ -48,15 +48,159 @@ export default function ProductForm({ token, onClose, onCreated, product }: Prop
   return <form className="product-editor" onSubmit={submit}>
     <div className="editor-top"><div><span>PRODUCTS / {product ? 'EDIT PRODUCT' : 'ADD PRODUCT'}</span><h2>{product ? 'Edit product' : 'Add product'}</h2></div><div><button type="button" onClick={onClose}>Cancel</button><button className="primary">{product ? 'Save changes' : 'Save product'}</button></div></div>
     {error && <p className="error">{error}</p>}
-    <div className="editor-layout"><div className="editor-main">
-      <section className="editor-card"><Field name="title" label="Title" placeholder="Short sleeve t-shirt" defaultValue={product?.title} /><label className="field"><span>Description</span><div className="rich-toolbar">B &nbsp; I &nbsp; <u>U</u> &nbsp; • List &nbsp; ↗</div><textarea name="description" placeholder="Write a product description…" defaultValue={product?.description} /></label></section>
-      <section className="editor-card"><h3>Media</h3><label className="dropzone" onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); void addFiles(e.dataTransfer.files) }}><input type="file" accept="image/*,video/*,.glb,.gltf,.usdz" multiple onChange={e => void addFiles(e.target.files)} /><b>{uploading ? 'Uploading media…' : 'Drop media to upload'}</b><button type="button">Select existing</button><small>Accepts images, videos, or 3D models</small></label>{media.length > 0 && <div className="media-list">{media.map((src, i) => <div key={src}>{/\.(mp4|webm|mov)$/i.test(src) ? <video src={API.replace('/api', '') + src} /> : <img src={API.replace('/api', '') + src} />}<button type="button" onClick={() => setMedia(m => m.filter((_, x) => x !== i))}>×</button></div>)}</div>}</section>
-      <section className="editor-card"><h3>Pricing</h3><div className="form-grid"><Field name="price" label="Price" type="number" defaultValue={product?.price} /><Field name="compareAtPrice" label="Compare-at price" type="number" defaultValue={product?.compareAtPrice} /><Field name="unitPrice" label="Unit price" type="number" defaultValue={product?.unitPrice} /><Field name="costPerItem" label="Cost per item" type="number" defaultValue={product?.costPerItem} /></div><Toggle name="chargeTax" label="Charge tax on this product" defaultChecked={product?.chargeTax ?? true} /></section>
-      <section className="editor-card"><h3>Inventory</h3><Toggle name="inventoryTracked" label="Inventory tracked" defaultChecked={product?.inventoryTracked ?? true} /><div className="form-grid"><Field name="sku" label="SKU" defaultValue={product?.sku} /><Field name="barcode" label="Barcode" defaultValue={product?.barcode} /></div><div className="location-line"><b>My Custom Location</b><span>Quantity available</span><input name="customLocation" type="number" min="0" defaultValue={product?.stock || 0} /></div><div className="location-line"><b>Shop location</b><span>Quantity available</span><input name="shopLocation" type="number" min="0" defaultValue="0" /></div><Toggle name="continueSelling" label="Sell when out of stock" defaultChecked={product?.continueSelling} /></section>
-      <section className="editor-card"><h3>Shipping</h3><Toggle name="physicalProduct" label="Physical product" defaultChecked={product?.shipping?.physicalProduct ?? true} /><div className="form-grid"><label className="field"><span>Package</span><select name="packageName" defaultValue={product?.shipping?.packageName || 'Store default'}><option>Store default</option><option>Sample box - 22 × 13.7 × 4.2 cm, 0 kg</option></select></label><Field name="weight" label="Product weight" type="number" defaultValue={product?.shipping?.weight} /><label className="field"><span>Weight unit</span><select name="weightUnit" defaultValue={product?.shipping?.weightUnit || 'kg'}><option value="kg">kg</option><option value="g">g</option><option value="lb">lb</option><option value="oz">oz</option></select></label><Field name="countryOfOrigin" label="Country of origin" defaultValue={product?.shipping?.countryOfOrigin} /><Field name="hsCode" label="HS Code" defaultValue={product?.shipping?.hsCode} /></div></section>
-      <section className="editor-card"><div className="section-heading"><h3>Variants</h3><button type="button" onClick={() => setVariants(v => [...v, { name: '', sku: '', price: '', stock: '' }])}>Add variant</button></div>{variants.map((variant, index) => <div className="variant-row" key={index}><input placeholder="Option name (e.g. Blue / M)" value={variant.name} onChange={e => setVariants(v => v.map((x, i) => i === index ? { ...x, name: e.target.value } : x))} /><input placeholder="SKU" value={variant.sku} onChange={e => setVariants(v => v.map((x, i) => i === index ? { ...x, sku: e.target.value } : x))} /><input type="number" min="0" placeholder="Price" value={variant.price} onChange={e => setVariants(v => v.map((x, i) => i === index ? { ...x, price: e.target.value } : x))} /><input type="number" min="0" placeholder="Stock" value={variant.stock} onChange={e => setVariants(v => v.map((x, i) => i === index ? { ...x, stock: e.target.value } : x))} />{variants.length > 1 && <button type="button" onClick={() => setVariants(v => v.filter((_, i) => i !== index))}>×</button>}</div>)}</section><section className="editor-card"><h3>Purchase options</h3><Toggle name="subscriptions" label="Offer subscription plans" defaultChecked={product?.purchaseOptions?.subscriptions} /><Toggle name="preOrder" label="Allow pre-orders" defaultChecked={product?.purchaseOptions?.preOrder} /></section>
-      <section className="editor-card"><h3>Product metafields</h3><div className="form-grid">{[['careInstructions', 'Care Instructions'], ['material', 'Material'], ['size', 'Size'], ['snowboardLength', 'Snowboard length'], ['snowboardBindingMount', 'Snowboard binding mount'], ['disclosures', 'Disclosures']].map(([name, label]) => <Field key={name} name={name} label={label} />)}</div></section>
-      <section className="editor-card"><h3>Search engine listing</h3><p>Add a title and description to see how this product might appear in a search engine listing.</p><Field name="seoTitle" label="Page title" /><label className="field"><span>Meta description</span><textarea name="seoDescription" /></label></section>
-    </div><aside className="editor-side"><section className="editor-card"><h3>Status</h3><select name="status" defaultValue={product?.status || 'draft'}><option value="draft">Draft</option><option value="active">Active</option><option value="archived">Archived</option></select></section><section className="editor-card"><h3>Product organization</h3><label className="field"><span>Category</span><select name="category" defaultValue={product?.category?._id || ''}><option value="">Choose a product category</option>{categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}</select><small>Determines tax rates and improves search and filters.</small></label><Field name="productType" label="Product type" defaultValue={product?.productType} /><label className="field"><span>Channels</span><select name="channels" multiple defaultValue={product?.channels || []}><option>Online Store</option><option>Point of Sale</option></select></label><label className="field"><span>Catalogs</span><select name="catalogs" multiple defaultValue={product?.catalogs || []}><option>Default catalog</option></select></label></section></aside></div>
+    <div className="editor-layout">
+      <div className="editor-main">
+        <section className="editor-card">
+          <Field name="title" label="Title" placeholder="Short sleeve t-shirt" defaultValue={product?.title} />
+          <div className="form-grid">
+            <label className="field">
+              <span>Category</span>
+              <select name="category" defaultValue={product?.category?._id || ''}>
+                <option value="">Choose a product category</option>
+                {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+              </select>
+              <small>Determines tax rates and improves search and filters.</small>
+            </label>
+            <label className="field">
+              <span>Status</span>
+              <select name="status" defaultValue={product?.status || 'draft'}>
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="archived">Archived</option>
+              </select>
+            </label>
+          </div>
+          <Field name="productType" label="Product type" defaultValue={product?.productType} />
+          <label className="field">
+            <span>Description</span>
+            <div className="rich-toolbar">B &nbsp; I &nbsp; <u>U</u> &nbsp; • List &nbsp; ↗</div>
+            <textarea name="description" placeholder="Write a product description…" defaultValue={product?.description} />
+          </label>
+        </section>
+        <section className="editor-card">
+          <h3>Media</h3>
+          <label className="dropzone" onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); void addFiles(e.dataTransfer.files) }}>
+            <input type="file" accept="image/*,video/*,.glb,.gltf,.usdz" multiple onChange={e => void addFiles(e.target.files)} />
+            <b>{uploading ? 'Uploading media…' : 'Drop media to upload'}</b>
+            <button type="button">Select existing</button>
+            <small>Accepts images, videos, or 3D models</small>
+          </label>
+          {media.length > 0 && (
+            <div className="media-list">
+              {media.map((src, i) => (
+                <div key={src}>
+                  {/\.(mp4|webm|mov)$/i.test(src) ? <video src={API.replace('/api', '') + src} /> : <img src={API.replace('/api', '') + src} />}
+                  <button type="button" onClick={() => setMedia(m => m.filter((_, x) => x !== i))}>×</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+        <section className="editor-card">
+          <h3>Pricing</h3>
+          <div className="form-grid">
+            <Field name="price" label="Price" type="number" defaultValue={product?.price} />
+            <Field name="compareAtPrice" label="Compare-at price" type="number" defaultValue={product?.compareAtPrice} />
+            <Field name="unitPrice" label="Unit price" type="number" defaultValue={product?.unitPrice} />
+            <Field name="costPerItem" label="Cost per item" type="number" defaultValue={product?.costPerItem} />
+          </div>
+          <Toggle name="chargeTax" label="Charge tax on this product" defaultChecked={product?.chargeTax ?? true} />
+        </section>
+        <section className="editor-card">
+          <h3>Inventory</h3>
+          <Toggle name="inventoryTracked" label="Inventory tracked" defaultChecked={product?.inventoryTracked ?? true} />
+          <div className="form-grid">
+            <Field name="sku" label="SKU" defaultValue={product?.sku} />
+            <Field name="barcode" label="Barcode" defaultValue={product?.barcode} />
+          </div>
+          <div className="location-line">
+            <b>My Custom Location</b>
+            <span>Quantity available</span>
+            <input name="customLocation" type="number" min="0" defaultValue={product?.stock || 0} />
+          </div>
+          <div className="location-line">
+            <b>Shop location</b>
+            <span>Quantity available</span>
+            <input name="shopLocation" type="number" min="0" defaultValue="0" />
+          </div>
+          <Toggle name="continueSelling" label="Sell when out of stock" defaultChecked={product?.continueSelling} />
+        </section>
+        <section className="editor-card">
+          <h3>Shipping</h3>
+          <Toggle name="physicalProduct" label="Physical product" defaultChecked={product?.shipping?.physicalProduct ?? true} />
+          <div className="form-grid">
+            <label className="field">
+              <span>Package</span>
+              <select name="packageName" defaultValue={product?.shipping?.packageName || 'Store default'}>
+                <option>Store default</option>
+                <option>Sample box - 22 × 13.7 × 4.2 cm, 0 kg</option>
+              </select>
+            </label>
+            <Field name="weight" label="Product weight" type="number" defaultValue={product?.shipping?.weight} />
+            <label className="field">
+              <span>Weight unit</span>
+              <select name="weightUnit" defaultValue={product?.shipping?.weightUnit || 'kg'}>
+                <option value="kg">kg</option>
+                <option value="g">g</option>
+                <option value="lb">lb</option>
+                <option value="oz">oz</option>
+              </select>
+            </label>
+            <Field name="countryOfOrigin" label="Country of origin" defaultValue={product?.shipping?.countryOfOrigin} />
+            <Field name="hsCode" label="HS Code" defaultValue={product?.shipping?.hsCode} />
+          </div>
+        </section>
+        <section className="editor-card">
+          <div className="section-heading">
+            <h3>Variants</h3>
+            <button type="button" onClick={() => setVariants(v => [...v, { name: '', sku: '', price: '', stock: '' }])}>Add variant</button>
+          </div>
+          {variants.map((variant, index) => (
+            <div className="variant-row" key={index}>
+              <input placeholder="Option name (e.g. Blue / M)" value={variant.name} onChange={e => setVariants(v => v.map((x, i) => i === index ? { ...x, name: e.target.value } : x))} />
+              <input placeholder="SKU" value={variant.sku} onChange={e => setVariants(v => v.map((x, i) => i === index ? { ...x, sku: e.target.value } : x))} />
+              <input type="number" min="0" placeholder="Price" value={variant.price} onChange={e => setVariants(v => v.map((x, i) => i === index ? { ...x, price: e.target.value } : x))} />
+              <input type="number" min="0" placeholder="Stock" value={variant.stock} onChange={e => setVariants(v => v.map((x, i) => i === index ? { ...x, stock: e.target.value } : x))} />
+              {variants.length > 1 && <button type="button" onClick={() => setVariants(v => v.filter((_, i) => i !== index))}>×</button>}
+            </div>
+          ))}
+        </section>
+        <section className="editor-card">
+          <h3>Sales channels & organization</h3>
+          <div className="form-grid">
+            <label className="field">
+              <span>Channels</span>
+              <select name="channels" multiple defaultValue={product?.channels || []}>
+                <option>Online Store</option>
+                <option>Point of Sale</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>Catalogs</span>
+              <select name="catalogs" multiple defaultValue={product?.catalogs || []}>
+                <option>Default catalog</option>
+              </select>
+            </label>
+          </div>
+        </section>
+        <section className="editor-card">
+          <h3>Purchase options</h3>
+          <Toggle name="subscriptions" label="Offer subscription plans" defaultChecked={product?.purchaseOptions?.subscriptions} />
+          <Toggle name="preOrder" label="Allow pre-orders" defaultChecked={product?.purchaseOptions?.preOrder} />
+        </section>
+        <section className="editor-card">
+          <h3>Product metafields</h3>
+          <div className="form-grid">
+            {[['careInstructions', 'Care Instructions'], ['material', 'Material'], ['size', 'Size'], ['snowboardLength', 'Snowboard length'], ['snowboardBindingMount', 'Snowboard binding mount'], ['disclosures', 'Disclosures']].map(([name, label]) => <Field key={name} name={name} label={label} />)}
+          </div>
+        </section>
+        <section className="editor-card">
+          <h3>Search engine listing</h3>
+          <p>Add a title and description to see how this product might appear in a search engine listing.</p>
+          <Field name="seoTitle" label="Page title" />
+          <label className="field"><span>Meta description</span><textarea name="seoDescription" /></label>
+        </section>
+      </div>
+    </div>
   </form>
 }
