@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Category = require('../models/Category');
 const Review = require('../models/Review');
 const asyncHandler = require('../utils/asyncHandler');
+const slugify = require('../utils/slugify');
 
 exports.dashboard = asyncHandler(async (_req, res) => {
   const sixMonthsAgo = new Date();
@@ -71,7 +72,7 @@ exports.listCategories = asyncHandler(async (_req, res) => {
 
 exports.listInventory = asyncHandler(async (req, res) => {
   const filter = { status: 'active' }; if (req.query.lowStock === 'true') filter.stock = { $lte: Number(req.query.threshold) || 5 };
-  res.json({ data: await Product.find(filter).select('title sku stock variants inventoryByLocation status').sort({ stock: 1 }) });
+  res.json({ data: await Product.find(filter).select('title sku stock price compareAtPrice variants inventoryByLocation status images category').populate('category', 'name').sort({ stock: 1 }) });
 });
 
 exports.adjustStock = asyncHandler(async (req, res) => {
@@ -100,4 +101,150 @@ exports.adjustStock = asyncHandler(async (req, res) => {
   }
   await product.save();
   res.json({ data: product });
+});
+
+// Bulk Import Products (via CSV / JSON array)
+exports.bulkImportProducts = asyncHandler(async (req, res) => {
+  const items = req.body.items || [];
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ message: 'No product rows provided in items array.' });
+  }
+
+  let createdCount = 0;
+  let updatedCount = 0;
+  const errors = [];
+
+  const categories = await Category.find();
+  const categoryMap = new Map();
+  categories.forEach(c => {
+    categoryMap.set(c.name.toLowerCase(), c._id);
+    categoryMap.set(c.slug.toLowerCase(), c._id);
+  });
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    try {
+      const title = (item.title || '').trim();
+      const sku = (item.sku || '').trim();
+      if (!title) {
+        errors.push(`Row ${i + 1}: Title is required`);
+        continue;
+      }
+
+      const price = Number(item.price) || 0;
+      const compareAtPrice = item.compareAtPrice ? Number(item.compareAtPrice) : undefined;
+      const stock = Number(item.stock) >= 0 ? Number(item.stock) : 0;
+      const description = (item.description || '').trim();
+      const material = (item.material || '').trim();
+      
+      let categoryId = undefined;
+      if (item.category) {
+        const catName = String(item.category).trim().toLowerCase();
+        if (categoryMap.has(catName)) {
+          categoryId = categoryMap.get(catName);
+        } else {
+          // create category if not exists
+          const newCat = await Category.create({ name: item.category.trim(), slug: slugify(item.category) });
+          categoryMap.set(newCat.name.toLowerCase(), newCat._id);
+          categoryMap.set(newCat.slug.toLowerCase(), newCat._id);
+          categoryId = newCat._id;
+        }
+      }
+
+      const images = Array.isArray(item.images)
+        ? item.images
+        : typeof item.images === 'string'
+        ? item.images.split(/[,|;]/).map(s => s.trim()).filter(Boolean)
+        : [];
+
+      // Find existing by SKU or Title
+      let existing = null;
+      if (sku) existing = await Product.findOne({ sku });
+      if (!existing && title) existing = await Product.findOne({ title });
+
+      if (existing) {
+        existing.price = price || existing.price;
+        if (compareAtPrice !== undefined) existing.compareAtPrice = compareAtPrice;
+        if (stock !== undefined) existing.stock = stock;
+        if (description) existing.description = description;
+        if (material) existing.material = material;
+        if (categoryId) existing.category = categoryId;
+        if (images.length) existing.images = images;
+        if (item.status) existing.status = item.status;
+        await existing.save();
+        updatedCount++;
+      } else {
+        const baseSlug = slugify(title);
+        let slug = baseSlug;
+        let counter = 1;
+        while (await Product.exists({ slug })) {
+          slug = `${baseSlug}-${counter++}`;
+        }
+        await Product.create({
+          title,
+          slug,
+          sku: sku || `SUG-${Date.now()}-${i}`,
+          price,
+          compareAtPrice,
+          stock,
+          description,
+          material: material || '18K Gold Plated Stainless Steel',
+          category: categoryId,
+          images: images.length ? images : ['https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=600&q=80'],
+          status: item.status || 'active'
+        });
+        createdCount++;
+      }
+    } catch (err) {
+      errors.push(`Row ${i + 1}: ${err.message}`);
+    }
+  }
+
+  res.json({
+    message: `Processed ${items.length} rows: ${createdCount} created, ${updatedCount} updated.`,
+    createdCount,
+    updatedCount,
+    errors
+  });
+});
+
+// Bulk Import Inventory Stock & Price Updates (via CSV / JSON array)
+exports.bulkImportInventory = asyncHandler(async (req, res) => {
+  const items = req.body.items || [];
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ message: 'No inventory rows provided in items array.' });
+  }
+
+  let updatedCount = 0;
+  const notFound = [];
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    const sku = (item.sku || '').trim();
+    const title = (item.title || '').trim();
+    const stock = item.stock !== undefined && item.stock !== '' ? Number(item.stock) : null;
+    const price = item.price !== undefined && item.price !== '' ? Number(item.price) : null;
+
+    let product = null;
+    if (sku) product = await Product.findOne({ sku });
+    if (!product && title) product = await Product.findOne({ title: new RegExp(`^${title}$`, 'i') });
+
+    if (product) {
+      if (stock !== null && !isNaN(stock) && stock >= 0) product.stock = stock;
+      if (price !== null && !isNaN(price) && price > 0) product.price = price;
+      if (item.compareAtPrice !== undefined && item.compareAtPrice !== '') {
+        product.compareAtPrice = Number(item.compareAtPrice) || undefined;
+      }
+      await product.save();
+      updatedCount++;
+    } else {
+      notFound.push(sku || title || `Row ${i + 1}`);
+    }
+  }
+
+  res.json({
+    message: `Updated inventory for ${updatedCount} products.`,
+    updatedCount,
+    notFound
+  });
 });
