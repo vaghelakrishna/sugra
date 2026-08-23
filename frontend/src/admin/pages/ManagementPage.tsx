@@ -31,6 +31,12 @@ export default function ManagementPage({ kind, token }: { kind: Kind; token: str
   const [orderModal, setOrderModal] = useState<Order | null>(null)
   const [adjustment, setAdjustment] = useState<{ id: string; title: string; currentStock: number; scope: object } | null>(null)
 
+  // CSV Import / Export states
+  const [csvModalOpen, setCsvModalOpen] = useState(false)
+  const [csvData, setCsvData] = useState<Record<string, string>[]>([])
+  const [csvFileName, setCsvFileName] = useState('')
+  const [csvImporting, setCsvImporting] = useState(false)
+
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type })
     setTimeout(() => setToast(null), 4000)
@@ -137,6 +143,146 @@ export default function ManagementPage({ kind, token }: { kind: Kind; token: str
     }
     await patch(`/admin/inventory/${adjustment.id}`, { quantity: value, ...adjustment.scope }, `Stock adjusted by ${value > 0 ? '+' : ''}${value}`)
     setAdjustment(null)
+  }
+
+  const parseCSV = (text: string): Record<string, string>[] => {
+    const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0)
+    if (lines.length < 2) return []
+    const headers = lines[0].split(',').map((h) => h.trim().replace(/^["']|["']$/g, ''))
+    const results: Record<string, string>[] = []
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i]
+      const values: string[] = []
+      let inQuotes = false
+      let current = ''
+      for (let c = 0; c < line.length; c++) {
+        const char = line[c]
+        if (char === '"' || char === "'") {
+          inQuotes = !inQuotes
+        } else if (char === ',' && !inQuotes) {
+          values.push(current.trim().replace(/^["']|["']$/g, ''))
+          current = ''
+        } else {
+          current += char
+        }
+      }
+      values.push(current.trim().replace(/^["']|["']$/g, ''))
+      const obj: Record<string, string> = {}
+      headers.forEach((h, idx) => {
+        obj[h] = values[idx] || ''
+      })
+      results.push(obj)
+    }
+    return results
+  }
+
+  const downloadSampleTemplate = () => {
+    let content = ''
+    let filename = ''
+    if (kind === 'Products') {
+      content =
+        'title,sku,category,price,compareAtPrice,stock,description,material,images\n' +
+        '"Solitaire Diamond Ring","SUG-RNG-001","Rings",1499,1999,25,"18K Gold plated statement ring","Stainless Steel","https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=600&q=80"\n' +
+        '"Crystal Drop Earrings","SUG-EAR-002","Earrings",1299,1699,18,"Waterproof anti-tarnish finish","18K Gold Plated","https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=600&q=80"'
+      filename = 'products_sample_template.csv'
+    } else if (kind === 'Inventory') {
+      content =
+        'sku,title,stock,price,compareAtPrice\n' +
+        '"SUG-RNG-001","Solitaire Diamond Ring",50,1499,1999\n' +
+        '"SUG-EAR-002","Crystal Drop Earrings",30,1299,1699'
+      filename = 'inventory_sample_template.csv'
+    }
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const exportCurrentDataCSV = () => {
+    let content = ''
+    let filename = ''
+    if (kind === 'Products') {
+      content = 'title,sku,category,price,compareAtPrice,stock,description,material,images\n'
+      data.forEach((item: any) => {
+        const title = `"${(item.title || '').replace(/"/g, '""')}"`
+        const sku = `"${(item.sku || '').replace(/"/g, '""')}"`
+        const cat = `"${(item.category?.name || item.category || '').replace(/"/g, '""')}"`
+        const price = item.price || 0
+        const compareAtPrice = item.compareAtPrice || ''
+        const stock = item.stock || 0
+        const desc = `"${(item.description || '').replace(/"/g, '""')}"`
+        const mat = `"${(item.material || '').replace(/"/g, '""')}"`
+        const imgs = `"${(Array.isArray(item.images) ? item.images.join(';') : '').replace(/"/g, '""')}"`
+        content += `${title},${sku},${cat},${price},${compareAtPrice},${stock},${desc},${mat},${imgs}\n`
+      })
+      filename = `products_export_${Date.now()}.csv`
+    } else if (kind === 'Inventory') {
+      content = 'sku,title,stock,price,compareAtPrice\n'
+      data.forEach((item: any) => {
+        const sku = `"${(item.sku || '').replace(/"/g, '""')}"`
+        const title = `"${(item.title || '').replace(/"/g, '""')}"`
+        const stock = item.stock || 0
+        const price = item.price || 0
+        const compareAtPrice = item.compareAtPrice || ''
+        content += `${sku},${title},${stock},${price},${compareAtPrice}\n`
+      })
+      filename = `inventory_export_${Date.now()}.csv`
+    }
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setCsvFileName(file.name)
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const text = event.target?.result as string
+      if (text) {
+        const parsed = parseCSV(text)
+        setCsvData(parsed)
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  const handleRunBulkImport = async () => {
+    if (csvData.length === 0) {
+      showToast('No rows found in uploaded CSV file', 'error')
+      return
+    }
+    setCsvImporting(true)
+    try {
+      const endpoint = kind === 'Products' ? '/admin/products/bulk-import' : '/admin/inventory/bulk-import'
+      const r = await fetch(API + endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ items: csvData }),
+      })
+      const b = await r.json()
+      if (!r.ok) throw new Error(b.message || 'Import failed')
+      showToast(b.message || `Successfully processed ${csvData.length} items!`)
+      setCsvModalOpen(false)
+      setCsvData([])
+      setCsvFileName('')
+      void load()
+    } catch (err: any) {
+      showToast(err.message || 'Bulk import failed', 'error')
+    } finally {
+      setCsvImporting(false)
+    }
   }
 
   const list = useMemo(() => {
@@ -278,15 +424,38 @@ export default function ManagementPage({ kind, token }: { kind: Kind; token: str
           </button>
         )}
 
-        {kind === 'Products' && (
-          <button
-            type="button"
-            className="admin-btn admin-btn-primary"
-            style={{ marginLeft: 'auto' }}
-            onClick={() => setAdd(true)}
-          >
-            <Icons.Plus /> Add product
-          </button>
+        {(kind === 'Products' || kind === 'Inventory') && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+            <button
+              type="button"
+              className="admin-btn admin-btn-sm"
+              onClick={exportCurrentDataCSV}
+              title="Export all records to CSV"
+            >
+              Export CSV
+            </button>
+            <button
+              type="button"
+              className="admin-btn admin-btn-sm"
+              onClick={() => {
+                setCsvData([])
+                setCsvFileName('')
+                setCsvModalOpen(true)
+              }}
+              title="Bulk import or update via CSV / Excel"
+            >
+              Import CSV / Excel
+            </button>
+            {kind === 'Products' && (
+              <button
+                type="button"
+                className="admin-btn admin-btn-primary"
+                onClick={() => setAdd(true)}
+              >
+                <Icons.Plus /> Add product
+              </button>
+            )}
+          </div>
         )}
 
         {kind === 'Categories' && (
@@ -574,6 +743,104 @@ export default function ManagementPage({ kind, token }: { kind: Kind; token: str
             >
               Close
             </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* CSV / EXCEL BULK IMPORT MODAL */}
+      {csvModalOpen && (
+        <Modal
+          title={`Bulk Import ${kind} via CSV / Excel`}
+          subtitle={`Upload a spreadsheet to bulk create or update ${kind.toLowerCase()} in your store.`}
+          onClose={() => setCsvModalOpen(false)}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Step 1: Download Sample Template */}
+            <div style={{ background: '#faf7f2', padding: '14px', borderRadius: '8px', border: '1px solid #eee' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <b style={{ fontSize: '13px', display: 'block', color: 'var(--admin-text-main)' }}>
+                    Need a template format?
+                  </b>
+                  <span style={{ fontSize: '11px', color: 'var(--admin-text-muted)' }}>
+                    Download our formatted CSV template with column headers and sample data.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="admin-btn admin-btn-sm"
+                  onClick={downloadSampleTemplate}
+                  style={{ background: '#fff' }}
+                >
+                  Download Sample CSV
+                </button>
+              </div>
+            </div>
+
+            {/* Step 2: Upload File */}
+            <div className="admin-form-group">
+              <label>Select CSV / Excel (.csv) File</label>
+              <input
+                type="file"
+                accept=".csv,text/csv,text/plain"
+                onChange={handleCSVUpload}
+                style={{ padding: '8px', background: '#fff', border: '1px dashed #ccc', borderRadius: '6px' }}
+              />
+              {csvFileName && (
+                <small style={{ color: 'var(--admin-success)', fontWeight: 600 }}>
+                  Selected: {csvFileName} ({csvData.length} rows parsed)
+                </small>
+              )}
+            </div>
+
+            {/* Step 3: Parsed Preview */}
+            {csvData.length > 0 && (
+              <div style={{ border: '1px solid #eee', borderRadius: '8px', overflow: 'hidden' }}>
+                <div style={{ padding: '10px 14px', background: '#f5f2eb', fontSize: '12px', fontWeight: 600 }}>
+                  Preview: First 5 of {csvData.length} records ready to import
+                </div>
+                <div style={{ maxHeight: '180px', overflowY: 'auto', fontSize: '11px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ background: '#fafafa', borderBottom: '1px solid #eee', textAlign: 'left' }}>
+                        {Object.keys(csvData[0] || {}).map((k) => (
+                          <th key={k} style={{ padding: '6px 10px', textTransform: 'capitalize' }}>{k}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {csvData.slice(0, 5).map((row, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                          {Object.values(row).map((v, i) => (
+                            <td key={i} style={{ padding: '6px 10px', whiteSpace: 'nowrap', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {String(v)}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="admin-btn"
+                onClick={() => setCsvModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="admin-btn admin-btn-primary"
+                disabled={csvImporting || csvData.length === 0}
+                onClick={handleRunBulkImport}
+              >
+                {csvImporting ? 'Processing Import...' : `Import & Sync ${csvData.length} Records`}
+              </button>
+            </div>
           </div>
         </Modal>
       )}
