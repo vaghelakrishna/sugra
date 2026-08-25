@@ -21,6 +21,11 @@ const categoryCards = [
     slug: 'rings',
     image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=800&q=85',
   },
+  {
+    name: 'WATCHES',
+    slug: 'watches',
+    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=85',
+  },
 ]
 
 export default function ShopByCategories() {
@@ -31,11 +36,8 @@ export default function ShopByCategories() {
           SHOP BY CATEGORIES
         </h2>
 
-        {/* COMPACT SLEEK GRID WITH GRID-AUTO-FLOW: COLUMN */}
-        <div
-          className="grid grid-flow-col auto-cols-[180px] sm:auto-cols-[220px] md:grid-cols-4 md:auto-cols-auto gap-3 sm:gap-4 overflow-x-auto scrollbar-none"
-          style={{ gridAutoFlow: 'column' }}
-        >
+        {/* ALWAYS HORIZONTAL SCROLL GRID */}
+        <div className="grid grid-flow-col auto-cols-[180px] sm:auto-cols-[220px] md:auto-cols-[260px] gap-3 sm:gap-4 overflow-x-auto scrollbar-none">
           {categoryCards.map((cat) => (
             <Link
               key={cat.name}
