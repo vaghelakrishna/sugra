@@ -25,28 +25,32 @@ const categoryCards = [
 
 export default function ShopByCategories() {
   return (
-    <section className="bg-white py-14 sm:py-20">
+    <section className="bg-white py-6 sm:py-8">
       <div className="mx-auto max-w-[1440px] px-4 sm:px-8">
-        <h2 className="text-center font-sans text-[16px] sm:text-[20px] font-bold uppercase tracking-[0.25em] text-[#1c1815] mb-8 sm:mb-12">
+        <h2 className="text-center font-sans text-[14px] sm:text-[16px] font-semibold uppercase tracking-[0.25em] text-[#222] mb-4 sm:mb-6">
           SHOP BY CATEGORIES
         </h2>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-5">
+        {/* COMPACT SLEEK GRID WITH GRID-AUTO-FLOW: COLUMN */}
+        <div
+          className="grid grid-flow-col auto-cols-[180px] sm:auto-cols-[220px] md:grid-cols-4 md:auto-cols-auto gap-3 sm:gap-4 overflow-x-auto scrollbar-none"
+          style={{ gridAutoFlow: 'column' }}
+        >
           {categoryCards.map((cat) => (
             <Link
               key={cat.name}
               to={`/collections/all?category=${cat.slug}`}
-              className="group relative block aspect-square sm:aspect-4/5 overflow-hidden bg-[#e8e2da]"
+              className="group relative block aspect-[4/5] max-h-[300px] sm:max-h-[340px] w-full overflow-hidden bg-[#e8e2da] rounded-xs"
             >
               <img
                 src={cat.image}
                 alt={cat.name}
-                className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-108"
+                className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-              <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 right-4 sm:right-6">
-                <h3 className="font-serif text-[18px] sm:text-[26px] font-normal tracking-wide text-white uppercase drop-shadow-sm">
+              <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4">
+                <h3 className="font-serif text-[18px] sm:text-[22px] font-normal tracking-wide text-white uppercase">
                   {cat.name}
                 </h3>
               </div>
