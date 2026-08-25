@@ -1,7 +1,6 @@
-import { useState, useRef, useEffect, Fragment } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Heart, Menu, Search, ShoppingBag, UserRound, X } from 'lucide-react'
-import { useAuth } from '../../context/AuthContext'
+import { Heart, Menu, Search, ShoppingBag, X, ChevronRight, ChevronLeft, Plus, Minus } from 'lucide-react'
 
 type SearchProduct = { _id: string; slug: string; title: string; price: number; images?: string[] }
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
@@ -22,43 +21,42 @@ export const categories = [
 
 export default function StoreHeader() {
   const navigate = useNavigate()
-  const { user, logout } = useAuth()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [megaOpen, setMegaOpen] = useState(false)
-  const [activeCategory, setActiveCategory] = useState('Rings')
-  const headerRef = useRef<HTMLElement>(null)
-  const [cartCount, setCartCount] = useState(0)
-  const [wishlistCount, setWishlistCount] = useState(0)
+
+  // Mobile Drawer State
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [drawerLevel, setDrawerLevel] = useState<'main' | 'shop_by' | 'category' | 'our_collection' | 'rakhi'>('main')
+  const [expandedSubmenu, setExpandedSubmenu] = useState<string | null>(null)
+
+  // Search State
+  const [searchOpen, setSearchOpen] = useState(true) // Visible search row like Screenshot 3
   const [search, setSearch] = useState('')
   const [results, setResults] = useState<SearchProduct[]>([])
   const [searching, setSearching] = useState(false)
 
-  const closeMenu = () => { setMenuOpen(false); setMegaOpen(false) }
+  // Desktop Mega Menu State
+  const [megaOpen, setMegaOpen] = useState(false)
+  const [activeCategory, setActiveCategory] = useState('Rings')
+  const headerRef = useRef<HTMLElement>(null)
+
+  // Bag & Wishlist Counts
+  const [cartCount, setCartCount] = useState(0)
+  const [wishlistCount, setWishlistCount] = useState(0)
+
+  const closeDrawer = () => {
+    setDrawerOpen(false)
+    setDrawerLevel('main')
+    setExpandedSubmenu(null)
+  }
+
   const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const term = search.trim()
     if (term) navigate(`/collections/all?search=${encodeURIComponent(term)}`)
     else navigate('/collections/all')
-    closeMenu()
-  }
-  const handleAccount = () => {
-    if (user) {
-      logout()
-      setCartCount(0)
-      setWishlistCount(0)
-      navigate('/')
-    }
-  }
-  const selectedCategory = categories.find(category => category.name === activeCategory) || categories[0]
-
-  const openMegaMenu = (category: string) => { setActiveCategory(category); setMegaOpen(true) }
-
-  const handleCategoryClick = (categoryName: string) => {
-    const isOpening = activeCategory !== categoryName || !megaOpen
-    setActiveCategory(categoryName)
-    setMegaOpen(isOpening)
+    closeDrawer()
   }
 
+  // Handle outside click for mega menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (headerRef.current && !headerRef.current.contains(event.target as Node)) {
@@ -66,11 +64,10 @@ export default function StoreHeader() {
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Live search debouncing
   useEffect(() => {
     const term = search.trim()
     if (term.length < 2) { setResults([]); setSearching(false); return }
@@ -88,14 +85,13 @@ export default function StoreHeader() {
     return () => { window.clearTimeout(timeout); controller.abort() }
   }, [search])
 
+  // Load cart count
   useEffect(() => {
     const loadCartCount = async () => {
       const token = localStorage.getItem('token')
       if (!token) return setCartCount(0)
       try {
-        const response = await fetch(`${API}/cart`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        const response = await fetch(`${API}/cart`, { headers: { Authorization: `Bearer ${token}` } })
         if (response.ok) {
           const body = await response.json()
           setCartCount(body.data?.summary?.itemCount || 0)
@@ -107,14 +103,13 @@ export default function StoreHeader() {
     return () => window.removeEventListener('cart:updated', loadCartCount)
   }, [])
 
+  // Load wishlist count
   useEffect(() => {
     const loadWishlistCount = async () => {
       const token = localStorage.getItem('token')
       if (!token) return setWishlistCount(0)
       try {
-        const response = await fetch(`${API}/wishlist`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        const response = await fetch(`${API}/wishlist`, { headers: { Authorization: `Bearer ${token}` } })
         if (response.ok) {
           const body = await response.json()
           setWishlistCount((body.data?.items || []).length)
@@ -126,89 +121,520 @@ export default function StoreHeader() {
     return () => window.removeEventListener('wishlist:updated', loadWishlistCount)
   }, [])
 
+  const selectedCategory = categories.find(category => category.name === activeCategory) || categories[0]
+
   return (
-    <header ref={headerRef} onMouseLeave={() => setMegaOpen(false)} className="relative z-20 border-t-4 border-[#2f2925] bg-white">
-      <div className="relative mx-auto flex h-19 max-w-375 flex-wrap items-center justify-between gap-x-6 px-5 sm:h-23.5 sm:flex-nowrap sm:gap-8 sm:px-[3.2vw]">
-        <button className="flex items-center justify-center border-0 bg-transparent p-1 text-[#292929] sm:hidden" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={22} strokeWidth={1.7} /> : <Menu size={22} strokeWidth={1.7} />}</button>
-        <Link className="absolute left-1/2 -translate-x-1/2 sm:static sm:translate-x-0" to="/" aria-label="SUGRA home"><img className="h-9 w-40 object-contain sm:h-12 sm:w-52" src="/sugra-logo.svg" alt="SUGRA" /></Link>
-        <div className={`relative order-last w-full sm:order-none sm:max-w-md sm:flex-1 ${menuOpen ? 'block' : 'hidden sm:block'}`}>
-          <form onSubmit={submitSearch} className="flex h-13 w-full items-center rounded-full border border-[#e6e6e6] bg-[#fafafa] px-5 sm:h-15 sm:px-7" role="search">
-            <input value={search} onChange={event => setSearch(event.target.value)} className="w-full border-0 bg-transparent font-sans text-[16px] text-[#333] outline-none placeholder:text-[#858585] sm:text-[17px]" aria-label="Search jewellery" placeholder="Search jewellery..." />
-            <button className="border-0 bg-transparent p-0 text-[#222]" aria-label="Submit search"><Search size={22} strokeWidth={1.5} /></button>
-          </form>
-          {search.trim().length >= 2 && (
-            <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-xl border border-[#e6ded7] bg-white shadow-xl">
-              {searching ? (
-                <p className="px-5 py-4 text-sm text-[#756b64]">Searching...</p>
-              ) : results.length ? (
-                <>
-                  {results.map(product => (
-                    <Link to={`/products/${product.slug}`} onClick={() => { setSearch(''); setResults([]); closeMenu() }} className="flex items-center gap-3 border-b border-[#eee7e1] px-4 py-3 last:border-0 hover:bg-[#faf7f3]" key={product._id}>
-                      {productImage(product.images?.[0]) ? <img className="h-12 w-10 object-cover" src={productImage(product.images?.[0])} alt="" /> : <div className="h-12 w-10 bg-[#eee4db]" />}
-                      <span className="flex-1"><b className="block text-sm text-[#29221e]">{product.title}</b><small className="text-[#875c35]">${product.price.toFixed(2)}</small></span>
-                    </Link>
-                  ))}
-                  <button className="w-full border-t border-[#eee7e1] px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#875c35] hover:bg-[#faf7f3]" onClick={() => void submitSearch({ preventDefault: () => undefined } as React.FormEvent<HTMLFormElement>)}>View all results</button>
-                </>
-              ) : (
-                <p className="px-5 py-4 text-sm text-[#756b64]">No matching products found.</p>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="flex items-center justify-self-end gap-4 text-[#292929] sm:gap-6">
-          {user ? (
-            <button onClick={handleAccount} className="transition-colors hover:text-[#875c35]" aria-label="Log out" title="Log out"><UserRound size={21} strokeWidth={1.6} /></button>
-          ) : (
-            <Link className="transition-colors hover:text-[#875c35]" to="/login" aria-label="Log in" title="Log in"><UserRound size={21} strokeWidth={1.6} /></Link>
-          )}
-          <Link className="relative transition-colors hover:text-[#875c35]" to="/wishlist" aria-label="Wishlist" title="Wishlist">
-            <Heart size={21} strokeWidth={1.6} />
-            {wishlistCount > 0 && (
-              <sup className="absolute -right-3 -top-2 grid h-5 w-5 place-items-center rounded-full bg-[#c5a059] pt-px font-sans text-[10px] font-normal text-white">
-                {wishlistCount}
-              </sup>
-            )}
+    <header ref={headerRef} className="sticky top-0 z-40 bg-white border-b border-[#ece8e3] shadow-xs">
+      {/* =========================================================================
+          1. MAIN HEADER ROW (SCREENSHOT 3)
+          ========================================================================= */}
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-8 h-14 sm:h-18 flex items-center justify-between">
+        {/* LEFT: HAMBURGER ICON */}
+        <button
+          type="button"
+          onClick={() => setDrawerOpen(true)}
+          className="p-1 text-[#111] hover:text-[#875c35] transition-colors"
+          aria-label="Open mobile menu"
+        >
+          <Menu size={22} strokeWidth={1.75} />
+        </button>
+
+        {/* CENTER: CLEAN BRAND LOGO */}
+        <Link
+          to="/"
+          className="font-sans text-[20px] sm:text-[26px] font-bold tracking-[0.25em] text-[#111] uppercase select-none"
+        >
+          SUGRA
+        </Link>
+
+        {/* RIGHT: SEARCH, BAG & WISHLIST WITH BADGES (SCREENSHOT 3) */}
+        <div className="flex items-center gap-3 sm:gap-5 text-[#111]">
+          {/* SEARCH TOGGLE */}
+          <button
+            type="button"
+            onClick={() => setSearchOpen(!searchOpen)}
+            className="p-1 hover:text-[#875c35] transition-colors"
+            aria-label="Toggle search"
+          >
+            <Search size={20} strokeWidth={1.75} />
+          </button>
+
+          {/* SHOPPING BAG WITH BADGE */}
+          <Link
+            to="/cart"
+            className="relative flex items-center justify-center p-1 hover:text-[#875c35] transition-colors"
+            aria-label="Shopping bag"
+          >
+            <ShoppingBag size={20} strokeWidth={1.75} />
+            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#111] text-[9px] font-bold text-white leading-none">
+              {cartCount}
+            </span>
           </Link>
-          <Link className="relative transition-colors hover:text-[#875c35]" to="/cart" aria-label="Shopping bag" title="Shopping bag">
-            <ShoppingBag size={21} strokeWidth={1.6} />
-            {cartCount > 0 && (
-              <sup className="absolute -right-3 -top-2 grid h-5 w-5 place-items-center rounded-full bg-[#171717] pt-px font-sans text-[10px] font-normal text-white">
-                {cartCount}
-              </sup>
+
+          {/* WISHLIST HEART WITH BADGE (MATCHING SCREENSHOT 3) */}
+          <Link
+            to="/wishlist"
+            className="relative flex items-center justify-center p-1 hover:text-[#875c35] transition-colors"
+            aria-label="Wishlist"
+          >
+            <Heart size={20} strokeWidth={1.75} />
+            {wishlistCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[9px] font-bold text-white leading-none shadow-xs">
+                {wishlistCount}
+              </span>
             )}
           </Link>
         </div>
       </div>
-      <nav className={`relative mx-auto max-w-375 justify-center border-t border-b border-[#ddd] bg-white px-5 text-[15px] text-[#292929] sm:flex sm:gap-8 sm:px-4 sm:text-[16px] lg:gap-13.25 ${menuOpen ? 'flex! flex-col items-stretch py-3 sm:py-0' : 'hidden! sm:flex!'}`} onFocus={() => setMegaOpen(true)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setMegaOpen(false) }}>
-        {categories.map(category => (
-          <Fragment key={category.name}>
-            <button
-              className={`relative flex h-12 items-center justify-between border-b border-[#ececec] bg-transparent text-left transition-colors hover:text-[#875c35] sm:h-16.75 sm:border-0 sm:text-center ${activeCategory === category.name && megaOpen ? 'text-[#875c35] sm:text-[#292929] sm:after:absolute sm:after:bottom-3.5 sm:after:left-0 sm:after:right-0 sm:after:h-0.5 sm:after:bg-[#252525]' : ''}`}
-              aria-expanded={activeCategory === category.name && megaOpen}
-              onMouseEnter={() => openMegaMenu(category.name)}
-              onFocus={() => openMegaMenu(category.name)}
-              onClick={() => handleCategoryClick(category.name)}
-            >
-              {category.name}
-              <span className="text-lg sm:hidden">{activeCategory === category.name && megaOpen ? '−' : '+'}</span>
-            </button>
-            <div className={`overflow-hidden bg-white sm:hidden ${activeCategory === category.name && megaOpen ? 'block' : 'hidden'}`}>
-              <div className="p-6">
-                {category.links.map(link => <Link className="mb-4.75 block font-sans text-[16px] text-[#353535] transition-colors hover:text-[#875c35]" to={`/collections/all?category=${category.name.toLowerCase()}&style=${link.toLowerCase().replaceAll(' ', '-')}`} onClick={closeMenu} key={link}>{link}</Link>)}
+
+      {/* =========================================================================
+          2. SEARCH ROW (MATCHING SCREENSHOT 3)
+          ========================================================================= */}
+      {searchOpen && (
+        <div className="relative border-t border-[#f0f0f0] bg-white px-4 sm:px-8 py-2.5">
+          <div className="mx-auto max-w-[1440px]">
+            <form onSubmit={submitSearch} className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 flex-1">
+                <Search size={17} className="text-[#666] shrink-0" strokeWidth={1.75} />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="SEARCH FOR..."
+                  className="w-full bg-transparent font-sans text-[12px] sm:text-[13px] uppercase tracking-[0.18em] text-[#222] placeholder:text-[#888] outline-none"
+                  autoFocus={false}
+                />
               </div>
-            </div>
-          </Fragment>
-        ))}
-        <div className={`${megaOpen ? 'grid' : 'hidden'} absolute left-1/2 top-full z-30 w-screen -translate-x-1/2 grid-cols-[minmax(280px,1fr)_minmax(210px,266px)_minmax(210px,266px)] gap-8 bg-white px-[7vw] pb-22 pt-13.25 shadow-[0_14px_25px_rgba(0,0,0,0.05)] sm:max-lg:px-10 max-sm:hidden`}>
-          <div>
-            <p className="mb-5 text-[20px] font-bold uppercase tracking-[0.02em] sm:text-[25px]">{selectedCategory.name}</p>
-            {selectedCategory.links.map(link => <Link className="mb-3 block font-sans text-[16px] text-[#353535] transition-colors hover:text-[#875c35] sm:mb-4.75 sm:text-[18px]" to={`/collections/all?category=${selectedCategory.name.toLowerCase()}&style=${link.toLowerCase().replaceAll(' ', '-')}`} onClick={closeMenu} key={link}>{link}</Link>)}
+
+              {search ? (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="p-1 text-[#666] hover:text-[#111]"
+                  aria-label="Clear search"
+                >
+                  <X size={17} strokeWidth={1.75} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setSearchOpen(false)}
+                  className="p-1 text-[#666] hover:text-[#111]"
+                  aria-label="Close search"
+                >
+                  <X size={17} strokeWidth={1.75} />
+                </button>
+              )}
+            </form>
+
+            {/* AUTOCOMPLETE DROPDOWN */}
+            {search.trim().length >= 2 && (
+              <div className="absolute left-0 right-0 top-full z-50 border-b border-[#e6ded7] bg-white shadow-xl max-h-96 overflow-y-auto">
+                <div className="mx-auto max-w-[1440px] px-4 sm:px-8 py-4">
+                  {searching ? (
+                    <p className="py-2 text-xs uppercase tracking-wider text-[#888]">Searching...</p>
+                  ) : results.length ? (
+                    <div className="divide-y divide-[#f0eae2]">
+                      {results.map((product) => (
+                        <Link
+                          key={product._id}
+                          to={`/products/${product.slug}`}
+                          onClick={() => { setSearch(''); setSearchOpen(false) }}
+                          className="flex items-center gap-3 py-2.5 hover:bg-[#faf7f3] transition-colors"
+                        >
+                          {productImage(product.images?.[0]) ? (
+                            <img
+                              className="h-11 w-9 object-cover rounded-xs"
+                              src={productImage(product.images?.[0])}
+                              alt=""
+                            />
+                          ) : (
+                            <div className="h-11 w-9 bg-[#eee4db] rounded-xs" />
+                          )}
+                          <div className="flex-1">
+                            <span className="block text-[13px] font-medium text-[#222]">
+                              {product.title}
+                            </span>
+                            <span className="text-[12px] font-semibold text-[#875c35]">
+                              Rs. {Number(product.price).toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                        </Link>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => void submitSearch({ preventDefault: () => undefined } as React.FormEvent<HTMLFormElement>)}
+                        className="w-full pt-3 text-left text-xs font-bold uppercase tracking-wider text-[#875c35] hover:underline"
+                      >
+                        View all results →
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="py-2 text-xs uppercase tracking-wider text-[#888]">No matching products found.</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-          <Link className="group flex flex-col gap-3" to={`/collections/all?category=${selectedCategory.name.toLowerCase()}&sort=newest`} onClick={closeMenu}><img className="h-55 w-full rounded-xl object-cover transition-transform group-hover:scale-[1.02] sm:h-80" src={selectedCategory.image} alt={`New ${selectedCategory.name.toLowerCase()} collection`} /><span className="text-center font-sans text-[15px] text-[#333] sm:text-[18px]">New Collection</span></Link>
-          <Link className="group flex flex-col gap-3" to={`/collections/all?category=${selectedCategory.name.toLowerCase()}&sort=price_asc`} onClick={closeMenu}><img className="h-55 w-full rounded-xl object-cover transition-transform group-hover:scale-[1.02] sm:h-80" src={selectedCategory.image} alt={`Best selling ${selectedCategory.name.toLowerCase()}`} /><span className="text-center font-sans text-[15px] text-[#333] sm:text-[18px]">Best Sellers</span></Link>
         </div>
+      )}
+
+      {/* =========================================================================
+          3. DESKTOP MEGA MENU NAVIGATION (HORIZONTAL)
+          ========================================================================= */}
+      <nav
+        className="hidden md:flex justify-center border-t border-[#f0f0f0] bg-white px-4 text-[13px] font-medium tracking-[0.14em] uppercase text-[#333]"
+        onMouseLeave={() => setMegaOpen(false)}
+      >
+        <div className="flex gap-8 lg:gap-12">
+          {categories.map((cat) => (
+            <div
+              key={cat.name}
+              className="relative"
+              onMouseEnter={() => { setActiveCategory(cat.name); setMegaOpen(true) }}
+            >
+              <Link
+                to={`/collections/all?category=${cat.name.toLowerCase()}`}
+                className={`flex h-11 items-center transition-colors hover:text-[#875c35] ${
+                  activeCategory === cat.name && megaOpen ? 'text-[#875c35] border-b-2 border-[#111]' : ''
+                }`}
+              >
+                {cat.name}
+              </Link>
+            </div>
+          ))}
+        </div>
+
+        {/* MEGA DROPDOWN BOX */}
+        {megaOpen && (
+          <div
+            className="absolute left-0 right-0 top-full z-40 border-b border-[#eee] bg-white py-8 shadow-xl"
+            onMouseEnter={() => setMegaOpen(true)}
+            onMouseLeave={() => setMegaOpen(false)}
+          >
+            <div className="mx-auto max-w-[1280px] px-8 grid grid-cols-[1fr_240px_240px] gap-8">
+              <div>
+                <h4 className="font-sans text-sm font-bold uppercase tracking-wider text-[#111] mb-4">
+                  {selectedCategory.name} Styles
+                </h4>
+                <div className="space-y-2.5">
+                  {selectedCategory.links.map((link) => (
+                    <Link
+                      key={link}
+                      to={`/collections/all?category=${selectedCategory.name.toLowerCase()}&style=${link.toLowerCase().replaceAll(' ', '-')}`}
+                      onClick={() => setMegaOpen(false)}
+                      className="block text-xs uppercase tracking-wider text-[#555] hover:text-[#875c35] transition-colors"
+                    >
+                      {link}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              <Link
+                to={`/collections/all?category=${selectedCategory.name.toLowerCase()}&sort=newest`}
+                onClick={() => setMegaOpen(false)}
+                className="group block"
+              >
+                <img
+                  src={selectedCategory.image}
+                  alt=""
+                  className="aspect-[3/4] w-full rounded-md object-cover transition-transform group-hover:scale-105"
+                />
+                <span className="block text-center text-xs font-semibold uppercase tracking-wider text-[#333] mt-2">
+                  New Collection
+                </span>
+              </Link>
+
+              <Link
+                to={`/collections/all?category=${selectedCategory.name.toLowerCase()}&sort=bestsellers`}
+                onClick={() => setMegaOpen(false)}
+                className="group block"
+              >
+                <img
+                  src={selectedCategory.image}
+                  alt=""
+                  className="aspect-[3/4] w-full rounded-md object-cover transition-transform group-hover:scale-105"
+                />
+                <span className="block text-center text-xs font-semibold uppercase tracking-wider text-[#333] mt-2">
+                  Bestsellers
+                </span>
+              </Link>
+            </div>
+          </div>
+        )}
       </nav>
+
+      {/* =========================================================================
+          4. MOBILE SLIDE-OVER DRAWER (MATCHING SCREENSHOT 1 & 2)
+          ========================================================================= */}
+      {drawerOpen && (
+        <div className="fixed inset-0 z-50 flex">
+          {/* BACKDROP OVERLAY */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={closeDrawer}
+          />
+
+          {/* SLIDE-IN WHITE DRAWER FROM LEFT */}
+          <div className="relative z-50 w-[88vw] max-w-[360px] h-full bg-white shadow-2xl flex flex-col overflow-y-auto animate-in slide-in-from-left duration-300">
+            {/* DRAWER TOP BAR: CLOSE ICON (MATCHING SCREENSHOT 1 & 2) */}
+            <div className="p-5 border-b border-[#f0f0f0] flex items-center justify-between">
+              <button
+                type="button"
+                onClick={closeDrawer}
+                className="p-1 text-[#111] hover:text-[#875c35]"
+                aria-label="Close menu"
+              >
+                <X size={24} strokeWidth={1.5} />
+              </button>
+            </div>
+
+            {/* ===================================================================
+                LEVEL 1: MAIN NAVIGATION LIST (SCREENSHOT 1)
+                =================================================================== */}
+            {drawerLevel === 'main' && (
+              <div className="px-6 py-2 flex-1 divide-y divide-[#f0f0f0]">
+                {/* 1. JEWELLERY */}
+                <Link
+                  to="/collections/all"
+                  onClick={closeDrawer}
+                  className="block py-4 text-[13px] font-medium tracking-[0.18em] uppercase text-[#222] hover:text-[#875c35]"
+                >
+                  JEWELLERY
+                </Link>
+
+                {/* 2. SHOP BY > */}
+                <button
+                  type="button"
+                  onClick={() => setDrawerLevel('shop_by')}
+                  className="w-full flex items-center justify-between py-4 text-[13px] font-medium tracking-[0.18em] uppercase text-[#222] hover:text-[#875c35]"
+                >
+                  <span>SHOP BY</span>
+                  <ChevronRight size={16} className="text-[#888]" />
+                </button>
+
+                {/* 3. CATEGORY > */}
+                <button
+                  type="button"
+                  onClick={() => setDrawerLevel('category')}
+                  className="w-full flex items-center justify-between py-4 text-[13px] font-medium tracking-[0.18em] uppercase text-[#222] hover:text-[#875c35]"
+                >
+                  <span>CATEGORY</span>
+                  <ChevronRight size={16} className="text-[#888]" />
+                </button>
+
+                {/* 4. BESTSELLERS */}
+                <Link
+                  to="/collections/all?sort=bestsellers"
+                  onClick={closeDrawer}
+                  className="block py-4 text-[13px] font-medium tracking-[0.18em] uppercase text-[#222] hover:text-[#875c35]"
+                >
+                  BESTSELLERS
+                </Link>
+
+                {/* 5. NEW IN */}
+                <Link
+                  to="/collections/all?sort=newest"
+                  onClick={closeDrawer}
+                  className="block py-4 text-[13px] font-medium tracking-[0.18em] uppercase text-[#222] hover:text-[#875c35]"
+                >
+                  NEW IN
+                </Link>
+
+                {/* 6. OUR COLLECTION > */}
+                <button
+                  type="button"
+                  onClick={() => setDrawerLevel('our_collection')}
+                  className="w-full flex items-center justify-between py-4 text-[13px] font-medium tracking-[0.18em] uppercase text-[#222] hover:text-[#875c35]"
+                >
+                  <span>OUR COLLECTION</span>
+                  <ChevronRight size={16} className="text-[#888]" />
+                </button>
+
+                {/* 7. RAKHI > */}
+                <button
+                  type="button"
+                  onClick={() => setDrawerLevel('rakhi')}
+                  className="w-full flex items-center justify-between py-4 text-[13px] font-medium tracking-[0.18em] uppercase text-[#222] hover:text-[#875c35]"
+                >
+                  <span>RAKHI</span>
+                  <ChevronRight size={16} className="text-[#888]" />
+                </button>
+
+                {/* 8. VIP MEMBERSHIP (GOLD COLOR) */}
+                <Link
+                  to="/vip-membership"
+                  onClick={closeDrawer}
+                  className="block py-4 text-[13px] font-bold tracking-[0.18em] uppercase text-[#d4a34b] hover:text-[#b58a4c]"
+                >
+                  VIP MEMBERSHIP
+                </Link>
+
+                {/* 9. TRACK ORDER */}
+                <Link
+                  to="/track-order"
+                  onClick={closeDrawer}
+                  className="block py-4 text-[13px] font-medium tracking-[0.18em] uppercase text-[#222] hover:text-[#875c35]"
+                >
+                  TRACK ORDER
+                </Link>
+              </div>
+            )}
+
+            {/* ===================================================================
+                LEVEL 2: DRILL-DOWN SUBMENU (SCREENSHOT 2)
+                =================================================================== */}
+            {drawerLevel !== 'main' && (
+              <div className="px-6 py-2 flex-1">
+                {/* BACK BUTTON (MATCHING SCREENSHOT 2: < SHOP BY) */}
+                <button
+                  type="button"
+                  onClick={() => setDrawerLevel('main')}
+                  className="flex items-center gap-2 py-4 text-[12px] font-medium tracking-[0.2em] uppercase text-[#555] border-b border-[#eee] w-full"
+                >
+                  <ChevronLeft size={16} />
+                  <span>
+                    {drawerLevel === 'shop_by' && 'SHOP BY'}
+                    {drawerLevel === 'category' && 'CATEGORY'}
+                    {drawerLevel === 'our_collection' && 'OUR COLLECTION'}
+                    {drawerLevel === 'rakhi' && 'RAKHI'}
+                  </span>
+                </button>
+
+                {/* ACCORDION MENU LIST WITH PLUS (+) ICONS (SCREENSHOT 2) */}
+                <div className="divide-y divide-[#f0f0f0] mt-2">
+                  {/* STYLE + */}
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedSubmenu(expandedSubmenu === 'style' ? null : 'style')}
+                      className="w-full flex items-center justify-between py-4 text-[13px] font-medium tracking-[0.18em] uppercase text-[#222]"
+                    >
+                      <span>STYLE</span>
+                      {expandedSubmenu === 'style' ? <Minus size={15} /> : <Plus size={15} />}
+                    </button>
+                    {expandedSubmenu === 'style' && (
+                      <div className="pl-4 pb-3 space-y-2.5 text-xs uppercase tracking-wider text-[#666]">
+                        <Link to="/collections/all?style=minimal" onClick={closeDrawer} className="block hover:text-black">Minimalist</Link>
+                        <Link to="/collections/all?style=statement" onClick={closeDrawer} className="block hover:text-black">Statement</Link>
+                        <Link to="/collections/all?style=bold-links" onClick={closeDrawer} className="block hover:text-black">Bold Links</Link>
+                        <Link to="/collections/all?style=everyday" onClick={closeDrawer} className="block hover:text-black">Everyday Wear</Link>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* OCCASIONS + */}
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedSubmenu(expandedSubmenu === 'occasions' ? null : 'occasions')}
+                      className="w-full flex items-center justify-between py-4 text-[13px] font-medium tracking-[0.18em] uppercase text-[#222]"
+                    >
+                      <span>OCCASIONS</span>
+                      {expandedSubmenu === 'occasions' ? <Minus size={15} /> : <Plus size={15} />}
+                    </button>
+                    {expandedSubmenu === 'occasions' && (
+                      <div className="pl-4 pb-3 space-y-2.5 text-xs uppercase tracking-wider text-[#666]">
+                        <Link to="/collections/all?occasion=festive" onClick={closeDrawer} className="block hover:text-black">Festive</Link>
+                        <Link to="/collections/all?occasion=party" onClick={closeDrawer} className="block hover:text-black">Party Wear</Link>
+                        <Link to="/collections/all?occasion=vacation" onClick={closeDrawer} className="block hover:text-black">Vacation</Link>
+                        <Link to="/collections/all?occasion=office" onClick={closeDrawer} className="block hover:text-black">Office Wear</Link>
+                        <Link to="/collections/all?occasion=gifting" onClick={closeDrawer} className="block hover:text-black">Gifting with love</Link>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* MATERIALS + */}
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedSubmenu(expandedSubmenu === 'materials' ? null : 'materials')}
+                      className="w-full flex items-center justify-between py-4 text-[13px] font-medium tracking-[0.18em] uppercase text-[#222]"
+                    >
+                      <span>MATERIALS</span>
+                      {expandedSubmenu === 'materials' ? <Minus size={15} /> : <Plus size={15} />}
+                    </button>
+                    {expandedSubmenu === 'materials' && (
+                      <div className="pl-4 pb-3 space-y-2.5 text-xs uppercase tracking-wider text-[#666]">
+                        <Link to="/collections/all?material=18k-gold" onClick={closeDrawer} className="block hover:text-black">18K Gold Plated</Link>
+                        <Link to="/collections/all?material=anti-tarnish" onClick={closeDrawer} className="block hover:text-black">Anti-Tarnish</Link>
+                        <Link to="/collections/all?material=waterproof" onClick={closeDrawer} className="block hover:text-black">100% Waterproof</Link>
+                        <Link to="/collections/all?material=stainless-steel" onClick={closeDrawer} className="block hover:text-black">Hypoallergenic Steel</Link>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* COLLECTIONS + */}
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedSubmenu(expandedSubmenu === 'collections' ? null : 'collections')}
+                      className="w-full flex items-center justify-between py-4 text-[13px] font-medium tracking-[0.18em] uppercase text-[#222]"
+                    >
+                      <span>COLLECTIONS</span>
+                      {expandedSubmenu === 'collections' ? <Minus size={15} /> : <Plus size={15} />}
+                    </button>
+                    {expandedSubmenu === 'collections' && (
+                      <div className="pl-4 pb-3 space-y-2.5 text-xs uppercase tracking-wider text-[#666]">
+                        <Link to="/collections/all?category=rings" onClick={closeDrawer} className="block hover:text-black">Rings</Link>
+                        <Link to="/collections/all?category=earrings" onClick={closeDrawer} className="block hover:text-black">Earrings</Link>
+                        <Link to="/collections/all?category=necklaces" onClick={closeDrawer} className="block hover:text-black">Necklaces</Link>
+                        <Link to="/collections/all?category=bracelets" onClick={closeDrawer} className="block hover:text-black">Bracelets</Link>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* PRICE + */}
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedSubmenu(expandedSubmenu === 'price' ? null : 'price')}
+                      className="w-full flex items-center justify-between py-4 text-[13px] font-medium tracking-[0.18em] uppercase text-[#222]"
+                    >
+                      <span>PRICE</span>
+                      {expandedSubmenu === 'price' ? <Minus size={15} /> : <Plus size={15} />}
+                    </button>
+                    {expandedSubmenu === 'price' && (
+                      <div className="pl-4 pb-3 space-y-2.5 text-xs uppercase tracking-wider text-[#666]">
+                        <Link to="/collections/all?maxPrice=999" onClick={closeDrawer} className="block hover:text-black">Under Rs. 999</Link>
+                        <Link to="/collections/all?minPrice=1000&maxPrice=1999" onClick={closeDrawer} className="block hover:text-black">Rs. 1,000 - Rs. 1,999</Link>
+                        <Link to="/collections/all?minPrice=2000" onClick={closeDrawer} className="block hover:text-black">Above Rs. 2,000</Link>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* BOTTOM FEATURED VISUAL PHOTO CARDS (MATCHING SCREENSHOT 2) */}
+                <div className="grid grid-cols-2 gap-3 mt-6 pt-6 border-t border-[#eee]">
+                  <Link
+                    to="/collections/all?category=earrings"
+                    onClick={closeDrawer}
+                    className="block aspect-[4/5] rounded-md overflow-hidden bg-[#f0eae2] shadow-xs"
+                  >
+                    <img
+                      src="https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=600&q=80"
+                      alt="Earrings collection"
+                      className="h-full w-full object-cover"
+                    />
+                  </Link>
+                  <Link
+                    to="/collections/all?category=necklaces"
+                    onClick={closeDrawer}
+                    className="block aspect-[4/5] rounded-md overflow-hidden bg-[#f0eae2] shadow-xs"
+                  >
+                    <img
+                      src="https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=600&q=80"
+                      alt="Necklaces collection"
+                      className="h-full w-full object-cover"
+                    />
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   )
 }
