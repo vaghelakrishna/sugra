@@ -22,6 +22,7 @@ import ProductAccordions from './components/ProductAccordions'
 import StickyProductBar from './components/StickyProductBar'
 import { API, headers, src, money, cartUpdated, wishlistUpdated } from './utils'
 import type { Product, Review, WishlistItem, Variant } from './types'
+import ProductCard from '../home/components/ProductCard'
 import './StorePages.css'
 
 export default function ProductPage() {
@@ -37,6 +38,10 @@ export default function ProductPage() {
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
   const [reviewTitle, setReviewTitle] = useState('')
+  const [reviewAuthorName, setReviewAuthorName] = useState('')
+  const [reviewImages, setReviewImages] = useState<string[]>([])
+  const [reviewImageUrl, setReviewImageUrl] = useState('')
+  const [reviewPreviewPhoto, setReviewPreviewPhoto] = useState<string | null>(null)
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [reviewFilter, setReviewFilter] = useState<number | 'all'>('all')
   const [message, setMessage] = useState('')
@@ -260,11 +265,16 @@ export default function ProductPage() {
 
     const response = await fetch(API + `/products/${product._id}/reviews`, {
       method: 'POST',
-      headers: headers(),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {}),
+      },
       body: JSON.stringify({
         rating,
+        authorName: reviewAuthorName.trim() || undefined,
         title: reviewTitle.trim() || undefined,
         comment,
+        images: reviewImages,
       }),
     })
     const body = await response.json().catch(() => ({}))
@@ -274,8 +284,10 @@ export default function ProductPage() {
 
     setComment('')
     setReviewTitle('')
+    setReviewAuthorName('')
+    setReviewImages([])
     setShowReviewForm(false)
-    setMessage('✨ Thank you! Your review has been submitted.')
+    setMessage('✨ Thank you! Your review with photo has been submitted.')
     void load()
   }
 
@@ -562,8 +574,8 @@ export default function ProductPage() {
           {message && (
             <div
               className={`product-feedback-alert ${message.includes('✨') || message.includes('❤️')
-                  ? 'success'
-                  : 'error'
+                ? 'success'
+                : 'error'
                 }`}
             >
               <span>{message}</span>
@@ -773,9 +785,17 @@ export default function ProductPage() {
 
               <input
                 type="text"
+                value={reviewAuthorName}
+                onChange={(e) => setReviewAuthorName(e.target.value)}
+                placeholder="Your Name (e.g. Pooja V.)"
+                className="review-input"
+              />
+
+              <input
+                type="text"
                 value={reviewTitle}
                 onChange={(e) => setReviewTitle(e.target.value)}
-                placeholder="Review Title (e.g., Stunning sparkle & high quality!)"
+                placeholder="Review Headline (e.g., Stunning sparkle & high quality!)"
                 className="review-input"
               />
 
@@ -788,7 +808,75 @@ export default function ProductPage() {
                 className="review-textarea"
               />
 
-              <button type="submit" className="review-submit-btn">
+              {/* ADD REVIEW PHOTOS */}
+              <div className="review-photos-input-box">
+                <p className="text-xs font-bold text-[#444] uppercase tracking-wider mb-2">
+                  Attach Product Photos:
+                </p>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="url"
+                    value={reviewImageUrl}
+                    onChange={(e) => setReviewImageUrl(e.target.value)}
+                    placeholder="Paste image URL..."
+                    className="review-input flex-1 mb-0"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (reviewImageUrl.trim()) {
+                        setReviewImages((prev) => [...prev, reviewImageUrl.trim()])
+                        setReviewImageUrl('')
+                      }
+                    }}
+                    className="px-4 py-2 bg-[#faf8f5] border border-[#e6dfd8] text-xs font-bold uppercase rounded-sm hover:bg-[#111] hover:text-white transition-colors"
+                  >
+                    Add URL
+                  </button>
+                </div>
+
+                <label className="inline-flex items-center gap-2 px-3 py-2 border border-dashed border-[#ccc] rounded-sm text-xs font-medium text-[#555] hover:bg-[#faf8f5] cursor-pointer">
+                  <span>📸 Upload Photo Files</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => {
+                      const files = e.target.files
+                      if (!files) return
+                      Array.from(files).forEach((file) => {
+                        const reader = new FileReader()
+                        reader.onload = (event) => {
+                          if (event.target?.result) {
+                            setReviewImages((prev) => [...prev, event.target!.result as string])
+                          }
+                        }
+                        reader.readAsDataURL(file)
+                      })
+                    }}
+                    className="hidden"
+                  />
+                </label>
+
+                {reviewImages.length > 0 && (
+                  <div className="flex items-center gap-2 mt-3 flex-wrap">
+                    {reviewImages.map((img, idx) => (
+                      <div key={idx} className="relative h-14 w-14 rounded-sm overflow-hidden border border-[#ddd] group">
+                        <img src={img} alt="" className="h-full w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setReviewImages((prev) => prev.filter((_, i) => i !== idx))}
+                          className="absolute inset-0 bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button type="submit" className="review-submit-btn mt-3">
                 Submit Verified Review
               </button>
             </form>
@@ -816,7 +904,7 @@ export default function ProductPage() {
                   <div className="review-card-header">
                     <div className="reviewer-info">
                       <span className="reviewer-name">
-                        {review.user?.name || 'Verified Customer'}
+                        {(review as any).authorName || review.user?.name || 'Verified Customer'}
                       </span>
                       <span className="verified-badge">
                         <Check size={12} /> Verified Buyer
@@ -836,8 +924,7 @@ export default function ProductPage() {
                       <Star
                         key={i}
                         size={14}
-                        className={`star-icon ${i < review.rating ? 'filled' : 'empty'
-                          }`}
+                        className={`star-icon ${i < review.rating ? 'filled' : 'empty'}`}
                         fill={i < review.rating ? 'currentColor' : 'none'}
                       />
                     ))}
@@ -847,6 +934,22 @@ export default function ProductPage() {
                     <h4 className="review-title">{review.title}</h4>
                   )}
                   <p className="review-body">{review.comment}</p>
+
+                  {/* CUSTOMER PHOTOS GALLERY */}
+                  {(review as any).images && (review as any).images.length > 0 && (
+                    <div className="flex items-center gap-2 mt-3 pt-2 border-t border-[#f0f0f0] flex-wrap">
+                      {(review as any).images.map((img: string, idx: number) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setReviewPreviewPhoto(img)}
+                          className="h-16 w-16 rounded-md overflow-hidden border border-[#eee] hover:border-black transition-all group"
+                        >
+                          <img src={img} alt="Customer photo" className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </article>
               ))
             ) : (
@@ -864,6 +967,25 @@ export default function ProductPage() {
               </div>
             )}
           </div>
+
+          {/* LIGHTBOX FOR CUSTOMER REVIEW PHOTO ZOOM */}
+          {reviewPreviewPhoto && (
+            <div
+              className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4"
+              onClick={() => setReviewPreviewPhoto(null)}
+            >
+              <div className="relative max-w-2xl max-h-[85vh]">
+                <img src={reviewPreviewPhoto} alt="Customer review visual" className="max-h-[80vh] max-w-full rounded-lg object-contain" />
+                <button
+                  type="button"
+                  onClick={() => setReviewPreviewPhoto(null)}
+                  className="absolute -top-10 right-0 text-white text-xl"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -875,34 +997,9 @@ export default function ProductPage() {
               <h2>You May Also Like</h2>
               <p>Explore matching designs and customer favorites</p>
             </div>
-            <div className="related-grid">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mt-6">
               {related.map((item) => (
-                <Link
-                  to={`/products/${item.slug}`}
-                  key={item._id}
-                  className="related-product-card"
-                >
-                  <div className="related-image-wrapper">
-                    <img
-                      src={src(item.images?.[0])}
-                      alt={item.title}
-                    />
-                  </div>
-                  <div className="related-info">
-                    <small className="related-category">
-                      {item.category?.name || 'SUGRA'}
-                    </small>
-                    <h3 className="related-title">{item.title}</h3>
-                    <div className="related-price-row">
-                      <b className="related-price">{money(item.price)}</b>
-                      {item.compareAtPrice && item.compareAtPrice > item.price && (
-                        <span className="related-mrp">
-                          {money(item.compareAtPrice)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
+                <ProductCard key={item._id} product={item as any} />
               ))}
             </div>
           </div>
