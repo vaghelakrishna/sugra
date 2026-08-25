@@ -2051,6 +2051,10 @@
    RESPONSIVE DESIGN (TABLET & MOBILE)
    ========================================================================== */
 @media (max-width: 960px) {
+  .catalog-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
   .product-detail-layout {
     grid-template-columns: 1fr;
     padding: 24px 18px 48px;
