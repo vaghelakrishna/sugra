@@ -12,7 +12,8 @@ import CategoriesPage from './admin/pages/CategoriesPage'
 import InventoryPage from './admin/pages/InventoryPage'
 import OrdersPage from './admin/pages/OrdersPage'
 import ReviewsPage from './admin/pages/ReviewsPage'
-import './App.css'
+import TrackOrderPage from './home/TrackOrderPage'
+
 export default function App() {
   const [token, setToken] = useState(localStorage.admin_token || '');
   const [user, setUser] = useState<User | null>(() => JSON.parse(localStorage.admin_user || 'null'));
@@ -28,6 +29,7 @@ export default function App() {
     <Route path="/login" element={<CustomerLoginPage />} />
     <Route path="/checkout" element={<CheckoutPage />} />
     <Route path="/order-success" element={<SuccessPage />} />
+    <Route path="/track-order" element={<TrackOrderPage />} />
     <Route path="/admin" element={token && user ? <AdminLayout user={user} onSignOut={signOut} /> : <Login onSuccess={signIn} />}>
       <Route index element={<OverviewPage token={token} />} />
       <Route path="products" element={<ProductsPage token={token} />} />
@@ -35,6 +37,7 @@ export default function App() {
       <Route path="inventory" element={<InventoryPage token={token} />} />
       <Route path="orders" element={<OrdersPage token={token} />} />
       <Route path="reviews" element={<ReviewsPage token={token} />} />
+
     </Route>
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
