@@ -5,6 +5,7 @@ import { FaFacebookF, FaLink, FaWhatsapp, FaXTwitter } from 'react-icons/fa6'
 import StoreShell from './StoreShell'
 import { API, headers, src, money, cartUpdated, wishlistUpdated } from './utils'
 import type { Product, WishlistItem } from './types'
+import ProductCard from '../home/components/ProductCard'
 import './StorePages.css'
 
 export default function WishlistPage() {
@@ -136,7 +137,7 @@ export default function WishlistPage() {
               onClick={() =>
                 share(
                   'https://www.facebook.com/sharer/sharer.php?u=' +
-                    encodeURIComponent(window.location.href)
+                  encodeURIComponent(window.location.href)
                 )
               }
               title="Share on Facebook"
@@ -147,7 +148,7 @@ export default function WishlistPage() {
               onClick={() =>
                 share(
                   'https://twitter.com/intent/tweet?url=' +
-                    encodeURIComponent(window.location.href)
+                  encodeURIComponent(window.location.href)
                 )
               }
               title="Share on X"
@@ -275,24 +276,16 @@ export default function WishlistPage() {
           </div>
         )}
 
-        {recommended.length > 0 && (
-          <section className="wishlist-recommendations">
-            <h2 className="wishlist-recommendation">You May Also Like</h2>
-            <div className="wishlist-recommendation-grid">
-              {recommended.map((p) => (
-                <Link
-                  to={`/products/${p.slug}`}
-                  className="wishlist-recommendation-card"
-                  key={p._id}
-                >
-                  <img src={src(p.images?.[0])} alt={p.title} />
-                  <h3>{p.title}</h3>
-                  <b>{money(p.price)}</b>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
+        <section className="wishlist-recommendations mt-16 pt-10 border-t border-[#eee]">
+          <h2 className="font-serif text-xl sm:text-2xl text-center uppercase tracking-wider text-[#222] mb-8">
+            You May Also Like
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
+            {recommended.map((p) => (
+              <ProductCard key={p._id} product={p as any} />
+            ))}
+          </div>
+        </section>
       </main>
     </StoreShell>
   )
