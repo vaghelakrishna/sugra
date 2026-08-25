@@ -34,7 +34,7 @@ export default function StoreFooter() {
             SUGRA PROMISE YOU
           </p>
 
-          <div className="flex flex-row items-center text-center gap-20 flex-wrap">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center max-w-5xl mx-auto">
             {/* Promise Item 1 */}
             <div className="flex flex-col items-center text-center">
               <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white text-[#875c35] shadow-sm">
@@ -85,7 +85,7 @@ export default function StoreFooter() {
           ========================================================================= */}
       <section className="bg-black px-6 py-14 text-[#a3a3a3] sm:px-10 lg:px-16 sm:py-18">
         <div className="mx-auto max-w-360">
-          <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 md:grid-cols-4 md:gap-8 lg:gap-12 grid-flow-col">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
             {/* Column 1: Support */}
             <div>
               <h4 className="mb-6 text-[12px] font-bold uppercase tracking-[0.18em] text-white">
@@ -296,7 +296,7 @@ export default function StoreFooter() {
           3. POPULAR SEARCHES SEO KEYWORDS (White Background Strip)
           ========================================================================= */}
       <section className="border-t border-[#e8e4df] bg-white px-6 py-10 text-[#444] sm:px-10 lg:px-16 sm:py-14">
-        <div className="mx-auto max-w-[1440px]">
+        <div className="mx-auto max-w-360">
           <h4 className="mb-6 text-[14px] font-bold text-[#1a1a1a]">Popular Searches</h4>
 
           <div className="space-y-4 text-[12px] leading-relaxed text-[#666]">
@@ -468,14 +468,14 @@ export default function StoreFooter() {
 
       {/* Floating WhatsApp Button */}
       <a
-        className="fixed bottom-6 right-6 z-50 grid h-13 w-13 place-items-center rounded-full bg-[#20d366] text-white shadow-xl transition-transform hover:scale-110"
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-2xl transition-all duration-300 hover:scale-110 hover:shadow-green-500/30"
         href="https://wa.me/919059396361"
         target="_blank"
         rel="noreferrer"
         aria-label="Chat on WhatsApp"
         title="Chat on WhatsApp"
       >
-        <FaWhatsapp size={28} />
+        <FaWhatsapp size={30} />
       </a>
     </footer>
   )
