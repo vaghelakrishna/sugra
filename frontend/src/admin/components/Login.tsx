@@ -111,7 +111,7 @@ export default function Login({ onSuccess }: { onSuccess: (user: User, token: st
             <input
               name="email"
               type="email"
-              placeholder="admin@sugra.com"
+              placeholder="shopsugrajewels@gmail.com"
               required
               autoFocus
               style={{
