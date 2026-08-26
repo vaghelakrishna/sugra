@@ -65,11 +65,13 @@ exports.deleteProduct = asyncHandler(async (req, res) => {
 
 exports.uploadMedia = asyncHandler(async (req, res) => {
   const files = req.files || [];
-  res.status(201).json({ data: files.map(file => ({
-    url: `/uploads/products/${file.filename}`,
-    name: file.originalname,
-    type: file.mimetype,
-  })) });
+  res.status(201).json({
+    data: files.map(file => ({
+      url: `/uploads/products/${file.filename}`,
+      name: file.originalname,
+      type: file.mimetype,
+    }))
+  });
 });
 
 function normalizeProduct(input) {
