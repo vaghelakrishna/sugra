@@ -12,16 +12,16 @@ export default function HeroSlider() {
     return () => window.clearInterval(timer)
   }, [])
 
-  const active = slides[slide]
+  const active = slides[slide] as { eyebrow?: string; title?: string; copy?: string; image: string; link?: string }
 
   return (
-    <div 
+    <div
       className="relative flex flex-col justify-end min-h-[85vh] sm:min-h-[90vh] w-full bg-cover bg-center transition-all duration-700 ease-in-out px-4 sm:px-12 pb-8 sm:pb-12 overflow-hidden"
       style={{ backgroundImage: `url(${active.image})` }}
     >
       {/* Clickable Overlay Link */}
-      <a 
-        href={active.link || "#collections"} 
+      <a
+        href={active.link || "#collections"}
         className="absolute inset-0 z-0 cursor-pointer"
         aria-label={active.title || "Slide link"}
       />
@@ -35,12 +35,11 @@ export default function HeroSlider() {
 
         {/* Center Minimal Line Indicators */}
         <div className="flex items-center gap-2">
-          {slides.map((item, index) => (
+          {slides.map((_, index) => (
             <button
               key={index}
-              className={`h-[2px] transition-all duration-500 cursor-pointer z-20 ${
-                index === slide ? 'w-8 sm:w-10 bg-white' : 'w-3 sm:w-5 bg-white/40 hover:bg-white/70'
-              }`}
+              className={`h-0.5 transition-all duration-500 cursor-pointer z-20 ${index === slide ? 'w-8 sm:w-10 bg-white' : 'w-3 sm:w-5 bg-white/40 hover:bg-white/70'
+                }`}
               aria-label={`Show slide ${index + 1}`}
               onClick={() => setSlide(index)}
             />
