@@ -10,6 +10,7 @@ const orderItemSchema = new mongoose.Schema(
     unitPrice: { type: Number, required: true, min: 0 },
     quantity: { type: Number, required: true, min: 1 },
     lineTotal: { type: Number, required: true, min: 0 },
+    customNote: { type: String, trim: true },
   },
   { _id: false }
 );
@@ -32,13 +33,19 @@ const shippingAddressSchema = new mongoose.Schema(
 const orderSchema = new mongoose.Schema(
   {
     orderNumber: { type: String, required: true, unique: true, index: true },
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false, index: true },
+    customerEmail: { type: String, trim: true },
+    customerPhone: { type: String, trim: true },
     items: { type: [orderItemSchema], required: true, validate: [(items) => items.length > 0, 'Order must include at least one item'] },
     shippingAddress: { type: shippingAddressSchema, required: true },
     subtotal: { type: Number, required: true, min: 0 },
     shippingFee: { type: Number, required: true, min: 0, default: 0 },
     discount: { type: Number, required: true, min: 0, default: 0 },
     total: { type: Number, required: true, min: 0 },
+    orderNotes: { type: String, trim: true },
+    giftMessage: { type: String, trim: true },
+    giftBox: { type: Boolean, default: false },
+    customInstructions: { type: String, trim: true },
     status: { type: String, enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'], default: 'pending' },
     payment: {
       provider: { type: String, default: 'razorpay' },
