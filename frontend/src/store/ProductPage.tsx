@@ -153,6 +153,7 @@ export default function ProductPage() {
 
       if (response.ok) {
         cartUpdated()
+        window.dispatchEvent(new Event('cart:open'))
         setMessage('✨ Added to your shopping bag!')
       } else {
         const err = await response.json().catch(() => ({}))
