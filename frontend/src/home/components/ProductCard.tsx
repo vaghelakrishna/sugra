@@ -60,6 +60,7 @@ export default function ProductCard({
       if (res.ok) {
         setAdded(true)
         window.dispatchEvent(new Event('cart:updated'))
+        window.dispatchEvent(new Event('cart:open'))
         setTimeout(() => setAdded(false), 2000)
       }
     } catch {
@@ -111,9 +112,8 @@ export default function ProductCard({
               <img
                 src={img1}
                 alt={product.title}
-                className={`h-full w-full object-cover object-center transition-all duration-700 ease-in-out ${
-                  img2 ? 'group-hover:opacity-0 group-hover:scale-105' : 'group-hover:scale-105'
-                }`}
+                className={`h-full w-full object-cover object-center transition-all duration-700 ease-in-out ${img2 ? 'group-hover:opacity-0 group-hover:scale-105' : 'group-hover:scale-105'
+                  }`}
               />
 
               {/* SECONDARY IMAGE (SHOWN ON HOVER) */}
@@ -162,9 +162,8 @@ export default function ProductCard({
             onClick={handleWishlist}
             aria-label="Add to wishlist"
             title="Add to wishlist"
-            className={`absolute top-2.5 right-2.5 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur-xs transition-transform hover:scale-110 ${
-              wishlisted ? 'text-[#c92a2a] opacity-100' : 'text-[#333] opacity-0 group-hover:opacity-100 hover:text-[#c92a2a]'
-            }`}
+            className={`absolute top-2.5 right-2.5 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur-xs transition-transform hover:scale-110 ${wishlisted ? 'text-[#c92a2a] opacity-100' : 'text-[#333] opacity-0 group-hover:opacity-100 hover:text-[#c92a2a]'
+              }`}
           >
             <Heart size={15} fill={wishlisted ? 'currentColor' : 'none'} strokeWidth={1.8} />
           </button>
