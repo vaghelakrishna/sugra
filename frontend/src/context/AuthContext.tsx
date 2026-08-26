@@ -18,6 +18,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('token', token)
     localStorage.setItem('user', JSON.stringify(next))
     setUser(next)
+    window.dispatchEvent(new Event('auth:updated'))
     window.dispatchEvent(new Event('cart:updated'))
     window.dispatchEvent(new Event('wishlist:updated'))
   }
@@ -26,6 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     setUser(null)
+    window.dispatchEvent(new Event('auth:updated'))
     window.dispatchEvent(new Event('cart:updated'))
     window.dispatchEvent(new Event('wishlist:updated'))
   }
