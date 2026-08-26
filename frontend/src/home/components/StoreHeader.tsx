@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Heart, Menu, Search, ShoppingBag, X, ChevronRight, ChevronLeft, Plus, Minus } from 'lucide-react'
+import { Heart, Menu, Search, ShoppingBag, X, Plus, Minus } from 'lucide-react'
 
 type SearchProduct = { _id: string; slug: string; title: string; price: number; images?: string[] }
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
@@ -134,12 +134,12 @@ export default function StoreHeader() {
   return (
     <header ref={headerRef} className="sticky top-0 z-40 bg-white border-b border-[#ece8e3] shadow-xs">
       {/* 1. MAIN HEADER ROW */}
-      <div className="mx-auto max-w-[1440px] px-4 sm:px-8 h-14 sm:h-18 flex items-center justify-between">
-        {/* MOBILE MENU TRIGGER BUTTON (Hidden on Desktop) */}
+      <div className="mx-auto max-w-360 px-4 sm:px-8 h-14 sm:h-18 flex items-center justify-between">
+        {/* MOBILE / HAMBURGER MENU TRIGGER BUTTON (Visible up to lg breakpoint) */}
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className="p-1 text-[#111] hover:text-[#875c35] transition-colors md:hidden"
+          className="p-1 text-[#111] hover:text-[#875c35] transition-colors lg:hidden"
           aria-label="Open mobile menu"
         >
           <Menu size={22} strokeWidth={1.75} />
@@ -148,7 +148,7 @@ export default function StoreHeader() {
         {/* BRAND LOGO */}
         <Link
           to="/"
-          className="font-sans text-[20px] sm:text-[26px] font-bold tracking-[0.25em] text-[#111] uppercase select-none mx-auto md:mx-0"
+          className="font-sans text-[20px] sm:text-[26px] font-bold tracking-[0.25em] text-[#111] uppercase select-none mx-auto lg:mx-0"
         >
           SUGRA
         </Link>
@@ -193,7 +193,7 @@ export default function StoreHeader() {
       {/* 2. SEARCH ROW */}
       {searchOpen && (
         <div className="relative border-t border-[#f0f0f0] bg-white px-4 sm:px-8 py-2.5">
-          <div className="mx-auto max-w-[1440px]">
+          <div className="mx-auto max-w-360">
             <form onSubmit={submitSearch} className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 flex-1">
                 <Search size={17} className="text-[#666] shrink-0" strokeWidth={1.75} />
@@ -230,7 +230,7 @@ export default function StoreHeader() {
 
             {search.trim().length >= 2 && (
               <div className="absolute left-0 right-0 top-full z-50 border-b border-[#e6ded7] bg-white shadow-xl max-h-96 overflow-y-auto">
-                <div className="mx-auto max-w-[1440px] px-4 sm:px-8 py-4">
+                <div className="mx-auto max-w-360 px-4 sm:px-8 py-4">
                   {searching ? (
                     <p className="py-2 text-xs uppercase tracking-wider text-[#888]">Searching...</p>
                   ) : results.length ? (
@@ -271,9 +271,9 @@ export default function StoreHeader() {
         </div>
       )}
 
-      {/* 3. DESKTOP MEGA MENU (Visible ONLY on Desktop/Laptop) */}
+      {/* 3. DESKTOP MEGA MENU (Visible ONLY on Large Screens / Laptops >= 1024px) */}
       <nav
-        className="hidden md:flex justify-center border-t border-[#f0f0f0] bg-white px-4 text-[13px] font-medium tracking-[0.14em] uppercase text-[#333]"
+        className="hidden lg:flex justify-center border-t border-[#f0f0f0] bg-white px-4 text-[13px] font-medium tracking-[0.14em] uppercase text-[#333]"
         onMouseLeave={() => setMegaOpen(false)}
       >
         <div className="flex gap-8 lg:gap-12">
@@ -285,9 +285,8 @@ export default function StoreHeader() {
             >
               <Link
                 to={`/collections/all?category=${cat.name.toLowerCase()}`}
-                className={`flex h-11 items-center transition-colors hover:text-[#875c35] ${
-                  activeCategory === cat.name && megaOpen ? 'text-[#875c35] border-b-2 border-[#111]' : ''
-                }`}
+                className={`flex h-11 items-center transition-colors hover:text-[#875c35] ${activeCategory === cat.name && megaOpen ? 'text-[#875c35] border-b-2 border-[#111]' : ''
+                  }`}
               >
                 {cat.name}
               </Link>
@@ -301,7 +300,7 @@ export default function StoreHeader() {
             onMouseEnter={() => setMegaOpen(true)}
             onMouseLeave={() => setMegaOpen(false)}
           >
-            <div className="mx-auto max-w-[1280px] px-8 grid grid-cols-[1fr_240px_240px] gap-8">
+            <div className="mx-auto max-w-7xl px-8 grid grid-cols-[1fr_240px_240px] gap-8">
               <div>
                 <h4 className="font-sans text-sm font-bold uppercase tracking-wider text-[#111] mb-4">
                   {selectedCategory.name} Styles
@@ -324,7 +323,7 @@ export default function StoreHeader() {
                 onClick={() => setMegaOpen(false)}
                 className="group block"
               >
-                <img src={selectedCategory.image} alt="" className="aspect-[3/4] w-full rounded-md object-cover transition-transform group-hover:scale-105" />
+                <img src={selectedCategory.image} alt="" className="aspect-3/4 w-full rounded-md object-cover transition-transform group-hover:scale-105" />
                 <span className="block text-center text-xs font-semibold uppercase tracking-wider text-[#333] mt-2">New Collection</span>
               </Link>
               <Link
@@ -332,7 +331,7 @@ export default function StoreHeader() {
                 onClick={() => setMegaOpen(false)}
                 className="group block"
               >
-                <img src={selectedCategory.image} alt="" className="aspect-[3/4] w-full rounded-md object-cover transition-transform group-hover:scale-105" />
+                <img src={selectedCategory.image} alt="" className="aspect-3/4 w-full rounded-md object-cover transition-transform group-hover:scale-105" />
                 <span className="block text-center text-xs font-semibold uppercase tracking-wider text-[#333] mt-2">Bestsellers</span>
               </Link>
             </div>
@@ -340,12 +339,12 @@ export default function StoreHeader() {
         )}
       </nav>
 
-      {/* 4. MOBILE SLIDE-OVER DRAWER (Visible ONLY on Mobile via md:hidden) */}
+      {/* 4. MOBILE / DRAWER SLIDE-OVER (Visible up to lg:hidden) */}
       {drawerOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
+        <div className="fixed inset-0 z-50 flex lg:hidden">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity" onClick={closeDrawer} />
 
-          <div className="relative z-50 w-[90vw] max-w-[380px] h-full bg-white shadow-2xl flex flex-col overflow-y-auto animate-in slide-in-from-left duration-300">
+          <div className="relative z-50 w-[90vw] max-w-95 h-full bg-white shadow-2xl flex flex-col overflow-y-auto animate-in slide-in-from-left duration-300">
             {/* TOP CLOSE BAR */}
             <div className="p-4 border-b border-[#f0f0f0] flex items-center justify-end sticky top-0 bg-white z-10">
               <button type="button" onClick={closeDrawer} className="p-1 text-[#111] hover:text-[#875c35]">
@@ -355,7 +354,7 @@ export default function StoreHeader() {
 
             {/* SINGLE VERTICAL MOBILE LIST CONTAINING ALL SECTIONS */}
             <div className="px-4 py-2 flex-1 divide-y divide-[#e5e0dc]">
-              
+
               {/* 1. Shop by Category */}
               <div className="py-2">
                 <button
@@ -546,9 +545,6 @@ export default function StoreHeader() {
                   Track Order
                 </Link>
               </div>
-
-
-             
 
             </div>
           </div>
