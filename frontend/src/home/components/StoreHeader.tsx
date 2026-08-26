@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Heart, Menu, Search, ShoppingBag, X, Plus, Minus } from 'lucide-react'
+import { Heart, Menu, Search, ShoppingBag, X, Plus, Minus, User as UserIcon } from 'lucide-react'
+import CartDrawer from './CartDrawer'
 
 type SearchProduct = { _id: string; slug: string; title: string; price: number; images?: string[] }
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
@@ -9,22 +10,68 @@ const productImage = (image?: string) => {
   return `${API.replace(/\/api\/?$/, '')}/${image.replace(/^\/+/, '')}`
 }
 
+// 1. Mobile Drawer Categories Grid Data (Matching Screenshot 1)
+const mobileCategories = [
+  { name: 'Necklaces & Chains', link: '/collections/all?category=necklaces', img: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=260&q=80' },
+  { name: 'Bracelets', link: '/collections/all?category=bracelets', img: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=260&q=80' },
+  { name: 'Earrings', link: '/collections/all?category=earrings', img: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=260&q=80' },
+  { name: 'Rings', link: '/collections/all?category=rings', img: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=260&q=80' },
+  { name: 'Men\'s Chains', link: '/collections/all?category=men', img: 'https://images.unsplash.com/photo-1598560917505-59a3ad559071?auto=format&fit=crop&w=260&q=80' },
+  { name: 'Jewellery Sets', link: '/collections/all?category=sets', img: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=260&q=80' },
+  { name: 'Anklets', link: '/collections/all?category=anklets', img: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=260&q=80' },
+  { name: 'Mangalsutras', link: '/collections/all?category=mangalsutra', img: 'https://images.unsplash.com/photo-1600003014755-ba31aa59c4b6?auto=format&fit=crop&w=260&q=80' },
+]
+
+// 2. Mobile Drawer Collections Data (Matching Screenshot 2)
+const mobileCollections = [
+  { name: 'AM To PM Collection', link: '/collections/all?collection=am-to-pm', img: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=260&q=80' },
+  { name: 'Emily In Paris', link: '/collections/all?collection=emily-in-paris', img: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=260&q=80' },
+  { name: 'Signature Collection', link: '/collections/all?collection=signature', img: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=260&q=80' },
+  { name: 'Forever Casual', link: '/collections/all?collection=forever-casual', img: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=260&q=80' },
+  { name: 'On You Collection', link: '/collections/all?collection=on-you', img: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=260&q=80' },
+  { name: 'Pearl Collection', link: '/collections/all?collection=pearl', img: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=260&q=80' },
+]
+
+// 3. Mobile Drawer Genders Data (Matching Screenshot 2)
+const mobileGenders = [
+  { name: 'Men', link: '/collections/all?gender=men', img: 'https://images.unsplash.com/photo-1598560917505-59a3ad559071?auto=format&fit=crop&w=260&q=80' },
+  { name: 'Women', link: '/collections/all?gender=women', img: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=260&q=80' },
+]
+
+// 4. Mobile Drawer Gifting Data (Matching Screenshot 3)
+const mobileGifting = [
+  { name: 'Gifts for Sister', link: '/collections/all?gift=sister', img: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=260&q=80' },
+  { name: 'Gifts for Brother', link: '/collections/all?gift=brother', img: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=260&q=80' },
+  { name: 'Gift Cards', link: '/collections/all?category=gift-cards', img: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=260&q=80' },
+  { name: 'Gifts for Mother', link: '/collections/all?gift=mother', img: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=260&q=80' },
+]
+
 export const categories = [
   { name: 'Rings', links: ['All Rings', 'Adjustable Rings', 'Crystal Rings', 'Statement Rings'], image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=700&q=80' },
   { name: 'Earrings', links: ['All Earrings', 'Stud Earrings', 'Hoop Earrings', 'Statement Earrings'], image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=700&q=80' },
   { name: 'Necklaces', links: ['All Necklaces', 'Chains', 'Pendants', 'Layered Necklaces'], image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=700&q=80' },
   { name: 'Bracelets', links: ['All Bracelets', 'Cuffs', 'Chains', 'Charm Bracelets'], image: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=700&q=80' },
   { name: 'Watches', links: ['All Watches', 'Classic Watches', 'Minimal Watches', 'Gift Watches'], image: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=700&q=80' },
-  { name: 'Mystery Jar', links: ['Discover the Jar', 'Gold Surprises', 'Everyday Favourites', 'Gift a Jar'], image: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=700&q=80' },
-  { name: 'Mystery Scoop', links: ['Discover the Scoop', 'Lucky Dip', 'Best Value', 'Gift a Scoop'], image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=700&q=80' },
 ]
 
 export default function StoreHeader() {
   const navigate = useNavigate()
 
-  // Mobile Drawer States
+  // Mobile Drawer State & Accordions
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [expandedSection, setExpandedSection] = useState<string | null>(null)
+  const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
+    category: true,
+    collection: false,
+    gender: false,
+    gifting: false,
+  })
+
+  const toggleAccordion = (key: string) => {
+    setOpenAccordions((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  // Cart Drawer State
+  const [cartDrawerOpen, setCartDrawerOpen] = useState(false)
 
   // Search State
   const [searchOpen, setSearchOpen] = useState(false)
@@ -40,10 +87,26 @@ export default function StoreHeader() {
   // Bag & Wishlist Counts
   const [cartCount, setCartCount] = useState(0)
   const [wishlistCount, setWishlistCount] = useState(0)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [currentUser, setCurrentUser] = useState<{ name?: string; email?: string; role?: string } | null>(null)
+  const [accountDropdownOpen, setAccountDropdownOpen] = useState(false)
+  const accountRef = useRef<HTMLDivElement>(null)
 
   const closeDrawer = () => {
     setDrawerOpen(false)
-    setExpandedSection(null)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    localStorage.removeItem('admin_token')
+    localStorage.removeItem('admin_user')
+    setIsLoggedIn(false)
+    setCurrentUser(null)
+    setAccountDropdownOpen(false)
+    window.dispatchEvent(new Event('cart:updated'))
+    window.dispatchEvent(new Event('wishlist:updated'))
+    navigate('/')
   }
 
   const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
@@ -64,15 +127,39 @@ export default function StoreHeader() {
     closeDrawer()
   }
 
-  // Handle outside click for mega menu
+  // Outside click for mega menu & account dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (headerRef.current && !headerRef.current.contains(event.target as Node)) {
         setMegaOpen(false)
       }
+      if (accountRef.current && !accountRef.current.contains(event.target as Node)) {
+        setAccountDropdownOpen(false)
+      }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Check auth
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = localStorage.getItem('token') || localStorage.getItem('admin_token')
+      const storedUser = localStorage.getItem('user') || localStorage.getItem('admin_user')
+      setIsLoggedIn(Boolean(token))
+      if (storedUser) {
+        try {
+          setCurrentUser(JSON.parse(storedUser))
+        } catch {
+          setCurrentUser(null)
+        }
+      } else {
+        setCurrentUser(null)
+      }
+    }
+    checkAuth()
+    window.addEventListener('auth:updated', checkAuth)
+    return () => window.removeEventListener('auth:updated', checkAuth)
   }, [])
 
   // Live search debouncing
@@ -102,13 +189,18 @@ export default function StoreHeader() {
         const response = await fetch(`${API}/cart`, { headers: { Authorization: `Bearer ${token}` } })
         if (response.ok) {
           const body = await response.json()
-          setCartCount(body.data?.summary?.itemCount || 0)
+          setCartCount(body.data?.summary?.itemCount || (body.data?.items || []).length || 0)
         }
       } catch { setCartCount(0) }
     }
     void loadCartCount()
+    const handleOpenCart = () => setCartDrawerOpen(true)
     window.addEventListener('cart:updated', loadCartCount)
-    return () => window.removeEventListener('cart:updated', loadCartCount)
+    window.addEventListener('cart:open', handleOpenCart)
+    return () => {
+      window.removeEventListener('cart:updated', loadCartCount)
+      window.removeEventListener('cart:open', handleOpenCart)
+    }
   }, [])
 
   // Load wishlist count
@@ -133,39 +225,216 @@ export default function StoreHeader() {
 
   return (
     <header ref={headerRef} className="sticky top-0 z-40 bg-white border-b border-[#ece8e3] shadow-xs">
-      {/* 1. MAIN HEADER ROW */}
-      <div className="mx-auto max-w-360 px-4 sm:px-8 h-14 sm:h-18 flex items-center justify-between">
-        {/* MOBILE / HAMBURGER MENU TRIGGER BUTTON (Visible up to lg breakpoint) */}
+      {/* =========================================================================
+          1. MAIN TOP HEADER ROW (EXACT MATCH FOR SCREENSHOT 4: AMALFA LOGO + NAV + RIGHT ICONS)
+          ========================================================================= */}
+      <div className="mx-auto max-w-[1720px] px-4 sm:px-8 h-14 sm:h-18 flex items-center justify-between gap-4">
+        {/* MOBILE HAMBURGER MENU BUTTON (Visible up to lg) */}
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className="p-1 text-[#111] hover:text-[#875c35] transition-colors lg:hidden"
+          className="p-1 text-[#111] hover:text-[#875c35] transition-colors lg:hidden shrink-0"
           aria-label="Open mobile menu"
         >
           <Menu size={22} strokeWidth={1.75} />
         </button>
 
-        {/* BRAND LOGO */}
+        {/* BRAND LOGO: AMALFA */}
         <Link
           to="/"
-          className="font-sans text-[20px] sm:text-[26px] font-bold tracking-[0.25em] text-[#111] uppercase select-none mx-auto lg:mx-0"
+          className="font-sans text-[20px] sm:text-[25px] font-bold tracking-[0.25em] text-[#111] uppercase select-none shrink-0"
         >
           SUGRA
         </Link>
 
-        {/* RIGHT ICONS */}
-        <div className="flex items-center gap-3 sm:gap-5 text-[#111]">
+        {/* DESKTOP CENTER NAVIGATION LINKS (SCREENSHOT 4) */}
+        <nav className="hidden lg:flex items-center gap-6 xl:gap-8 font-sans text-[12px] font-semibold tracking-[0.15em] uppercase text-[#1a1613] mx-auto">
+          {/* JEWELLERY (Opens Mega Menu) */}
+          <div
+            className="relative cursor-pointer py-5"
+            onMouseEnter={() => { setActiveCategory('Rings'); setMegaOpen(true) }}
+          >
+            <span className={`hover:text-[#875c35] transition-colors ${megaOpen ? 'text-[#875c35]' : ''}`}>
+              JEWELLERY
+            </span>
+          </div>
+
+          {/* SHOP BY */}
+          <Link to="/collections/all" className="hover:text-[#875c35] transition-colors">
+            SHOP BY
+          </Link>
+
+          {/* CATEGORY */}
+          <Link to="/collections/all" className="hover:text-[#875c35] transition-colors">
+            CATEGORY
+          </Link>
+
+          {/* BESTSELLERS */}
+          <Link to="/collections/all?sort=bestsellers" className="hover:text-[#875c35] transition-colors">
+            BESTSELLERS
+          </Link>
+
+          {/* NEW IN */}
+          <Link to="/collections/all?sort=newest" className="hover:text-[#875c35] transition-colors">
+            NEW IN
+          </Link>
+
+          {/* OUR COLLECTION */}
+          <Link to="/collections/all?collection=signature" className="hover:text-[#875c35] transition-colors">
+            OUR COLLECTION
+          </Link>
+
+          {/* RAKHI */}
+          <Link to="/collections/all?category=rakhi" className="hover:text-[#875c35] transition-colors">
+            RAKHI
+          </Link>
+
+          {/* VIP MEMBERSHIP (Gold Styled) */}
+          <Link to="/collections/all" className="text-[#b47e43] font-bold hover:text-[#875c35] transition-colors">
+            VIP MEMBERSHIP
+          </Link>
+
+          {/* TRACK ORDER */}
+          <Link to="/track-order" className="hover:text-[#875c35] transition-colors">
+            TRACK ORDER
+          </Link>
+        </nav>
+
+        {/* RIGHT ACTION ICONS: USER, SEARCH, BAG, WISHLIST */}
+        <div className="flex items-center gap-3 sm:gap-4 text-[#111] shrink-0">
+          {/* USER ACCOUNT ICON & DROPDOWN */}
+          <div ref={accountRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
+              className="p-1 hover:text-[#875c35] transition-colors flex items-center justify-center"
+              title={isLoggedIn ? (currentUser?.name || 'My Account') : 'Account / Sign In'}
+              aria-label="Account"
+            >
+              <UserIcon size={19} strokeWidth={1.75} />
+            </button>
+
+            {/* ACCOUNT DROPDOWN MENU */}
+            {accountDropdownOpen && (
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-md border border-[#e5ded5] shadow-xl z-50 py-2 animate-in fade-in zoom-in-95 duration-150">
+                {isLoggedIn ? (
+                  <>
+                    <div className="px-4 py-2.5 border-b border-[#f0eae2] bg-[#faf8f5]">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#875c35]">
+                        Signed In As
+                      </p>
+                      <p className="text-[13px] font-semibold text-[#111] truncate mt-0.5">
+                        {currentUser?.name || 'Valued Customer'}
+                      </p>
+                      {currentUser?.email && (
+                        <p className="text-[11px] text-[#777] truncate">
+                          {currentUser.email}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="py-1 text-[12px] font-medium text-[#333]">
+                      <Link
+                        to="/track-order"
+                        onClick={() => setAccountDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 hover:bg-[#faf7f3] hover:text-[#875c35] transition-colors"
+                      >
+                        <span>📦</span> Track My Order
+                      </Link>
+                      <Link
+                        to="/wishlist"
+                        onClick={() => setAccountDropdownOpen(false)}
+                        className="flex items-center justify-between px-4 py-2 hover:bg-[#faf7f3] hover:text-[#875c35] transition-colors"
+                      >
+                        <span className="flex items-center gap-2"><span>❤️</span> My Wishlist</span>
+                        {wishlistCount > 0 && (
+                          <span className="text-[10px] font-bold bg-[#111] text-white px-1.5 py-0.5 rounded-full">
+                            {wishlistCount}
+                          </span>
+                        )}
+                      </Link>
+                      {currentUser?.role === 'admin' && (
+                        <Link
+                          to="/admin"
+                          onClick={() => setAccountDropdownOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2 text-[#875c35] font-bold hover:bg-[#faf7f3] transition-colors"
+                        >
+                          <span>⚙️</span> Admin Dashboard
+                        </Link>
+                      )}
+                    </div>
+
+                    <div className="border-t border-[#f0eae2] pt-1">
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-2 text-[12px] font-bold uppercase tracking-wider text-rose-600 hover:bg-rose-50 transition-colors flex items-center gap-2"
+                      >
+                        <span>🚪</span> Log Out
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="px-4 py-2.5 border-b border-[#f0eae2] bg-[#faf8f5]">
+                      <p className="text-[12px] font-bold text-[#111]">
+                        Welcome to SUGRA JEWELS
+                      </p>
+                      <p className="text-[11px] text-[#777] mt-0.5">
+                        Sign in for fast checkout &amp; order tracking.
+                      </p>
+                    </div>
+
+                    <div className="py-1 text-[12px] font-medium text-[#333]">
+                      <Link
+                        to="/login"
+                        onClick={() => setAccountDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 hover:bg-[#faf7f3] hover:text-[#875c35] transition-colors font-semibold"
+                      >
+                        <span>✨</span> Sign In / Login
+                      </Link>
+                      <Link
+                        to="/login"
+                        onClick={() => setAccountDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 hover:bg-[#faf7f3] hover:text-[#875c35] transition-colors"
+                      >
+                        <span>📝</span> Create New Account
+                      </Link>
+                      <Link
+                        to="/track-order"
+                        onClick={() => setAccountDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 hover:bg-[#faf7f3] hover:text-[#875c35] transition-colors"
+                      >
+                        <span>📦</span> Track Order
+                      </Link>
+                      <Link
+                        to="/admin"
+                        onClick={() => setAccountDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-[#875c35] hover:bg-[#faf7f3] transition-colors text-[11px] font-bold uppercase tracking-wider"
+                      >
+                        <span>🔒</span> Admin Sign In
+                      </Link>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* SEARCH ICON */}
           <button
             type="button"
             onClick={() => setSearchOpen(!searchOpen)}
             className="p-1 hover:text-[#875c35] transition-colors"
             aria-label="Toggle search"
           >
-            <Search size={20} strokeWidth={1.75} />
+            <Search size={19} strokeWidth={1.75} />
           </button>
 
-          <Link
-            to="/cart"
+          {/* SHOPPING BAG WITH BADGE (OPENS PALMONAS-STYLE SLIDE-OVER DRAWER) */}
+          <button
+            type="button"
+            onClick={() => setCartDrawerOpen(true)}
             className="relative flex items-center justify-center p-1 hover:text-[#875c35] transition-colors"
             aria-label="Shopping bag"
           >
@@ -173,8 +442,9 @@ export default function StoreHeader() {
             <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#111] text-[9px] font-bold text-white leading-none">
               {cartCount}
             </span>
-          </Link>
+          </button>
 
+          {/* WISHLIST HEART WITH BADGE */}
           <Link
             to="/wishlist"
             className="relative flex items-center justify-center p-1 hover:text-[#875c35] transition-colors"
@@ -190,7 +460,9 @@ export default function StoreHeader() {
         </div>
       </div>
 
-      {/* 2. SEARCH ROW */}
+      {/* =========================================================================
+          2. SEARCH ROW STRIP
+          ========================================================================= */}
       {searchOpen && (
         <div className="relative border-t border-[#f0f0f0] bg-white px-4 sm:px-8 py-2.5">
           <div className="mx-auto max-w-360">
@@ -271,252 +543,259 @@ export default function StoreHeader() {
         </div>
       )}
 
-      {/* 3. DESKTOP MEGA MENU (Visible ONLY on Large Screens / Laptops >= 1024px) */}
-      <nav
-        className="hidden lg:flex justify-center border-t border-[#f0f0f0] bg-white px-4 text-[13px] font-medium tracking-[0.14em] uppercase text-[#333]"
-        onMouseLeave={() => setMegaOpen(false)}
-      >
-        <div className="flex gap-8 lg:gap-12">
-          {categories.map((cat) => (
-            <div
-              key={cat.name}
-              className="relative"
-              onMouseEnter={() => { setActiveCategory(cat.name); setMegaOpen(true) }}
-            >
-              <Link
-                to={`/collections/all?category=${cat.name.toLowerCase()}`}
-                className={`flex h-11 items-center transition-colors hover:text-[#875c35] ${activeCategory === cat.name && megaOpen ? 'text-[#875c35] border-b-2 border-[#111]' : ''
-                  }`}
-              >
-                {cat.name}
-              </Link>
+      {/* =========================================================================
+          3. DESKTOP MEGA MENU DROPDOWN
+          ========================================================================= */}
+      {megaOpen && (
+        <div
+          className="absolute left-0 right-0 top-full z-40 border-b border-[#eee] bg-white py-8 shadow-xl hidden lg:block"
+          onMouseEnter={() => setMegaOpen(true)}
+          onMouseLeave={() => setMegaOpen(false)}
+        >
+          <div className="mx-auto max-w-7xl px-8 grid grid-cols-[200px_1fr_240px_240px] gap-8">
+            {/* Category tabs */}
+            <div className="space-y-1 border-r border-[#eee] pr-4">
+              {categories.map((cat) => (
+                <button
+                  key={cat.name}
+                  type="button"
+                  onClick={() => setActiveCategory(cat.name)}
+                  onMouseEnter={() => setActiveCategory(cat.name)}
+                  className={`w-full text-left px-3 py-2 text-xs font-bold uppercase tracking-wider transition-colors rounded-xs ${activeCategory === cat.name ? 'bg-[#faf7f3] text-[#875c35]' : 'text-[#555] hover:text-[#111]'
+                    }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {megaOpen && (
-          <div
-            className="absolute left-0 right-0 top-full z-40 border-b border-[#eee] bg-white py-8 shadow-xl"
-            onMouseEnter={() => setMegaOpen(true)}
-            onMouseLeave={() => setMegaOpen(false)}
-          >
-            <div className="mx-auto max-w-7xl px-8 grid grid-cols-[1fr_240px_240px] gap-8">
-              <div>
-                <h4 className="font-sans text-sm font-bold uppercase tracking-wider text-[#111] mb-4">
-                  {selectedCategory.name} Styles
-                </h4>
-                <div className="space-y-2.5">
-                  {selectedCategory.links.map((link) => (
-                    <Link
-                      key={link}
-                      to={`/collections/all?category=${selectedCategory.name.toLowerCase()}&style=${link.toLowerCase().replaceAll(' ', '-')}`}
-                      onClick={() => setMegaOpen(false)}
-                      className="block text-xs uppercase tracking-wider text-[#555] hover:text-[#875c35] transition-colors"
-                    >
-                      {link}
-                    </Link>
-                  ))}
-                </div>
+            {/* Sub links */}
+            <div>
+              <h4 className="font-sans text-xs font-bold uppercase tracking-widest text-[#111] mb-4">
+                Popular {selectedCategory.name} Styles
+              </h4>
+              <div className="space-y-2.5">
+                {selectedCategory.links.map((link) => (
+                  <Link
+                    key={link}
+                    to={`/collections/all?category=${selectedCategory.name.toLowerCase()}&style=${link.toLowerCase().replaceAll(' ', '-')}`}
+                    onClick={() => setMegaOpen(false)}
+                    className="block text-xs uppercase tracking-wider text-[#555] hover:text-[#875c35] transition-colors"
+                  >
+                    {link}
+                  </Link>
+                ))}
               </div>
-              <Link
-                to={`/collections/all?category=${selectedCategory.name.toLowerCase()}&sort=newest`}
-                onClick={() => setMegaOpen(false)}
-                className="group block"
-              >
-                <img src={selectedCategory.image} alt="" className="aspect-3/4 w-full rounded-md object-cover transition-transform group-hover:scale-105" />
-                <span className="block text-center text-xs font-semibold uppercase tracking-wider text-[#333] mt-2">New Collection</span>
-              </Link>
-              <Link
-                to={`/collections/all?category=${selectedCategory.name.toLowerCase()}&sort=bestsellers`}
-                onClick={() => setMegaOpen(false)}
-                className="group block"
-              >
-                <img src={selectedCategory.image} alt="" className="aspect-3/4 w-full rounded-md object-cover transition-transform group-hover:scale-105" />
-                <span className="block text-center text-xs font-semibold uppercase tracking-wider text-[#333] mt-2">Bestsellers</span>
-              </Link>
             </div>
-          </div>
-        )}
-      </nav>
 
-      {/* 4. MOBILE / DRAWER SLIDE-OVER (Visible up to lg:hidden) */}
+            {/* Image Tile 1 */}
+            <Link
+              to={`/collections/all?category=${selectedCategory.name.toLowerCase()}&sort=newest`}
+              onClick={() => setMegaOpen(false)}
+              className="group block"
+            >
+              <img src={selectedCategory.image} alt="" className="aspect-3/4 w-full rounded-md object-cover transition-transform group-hover:scale-105" />
+              <span className="block text-center text-xs font-semibold uppercase tracking-wider text-[#333] mt-2">New Arrivals</span>
+            </Link>
+
+            {/* Image Tile 2 */}
+            <Link
+              to={`/collections/all?category=${selectedCategory.name.toLowerCase()}&sort=bestsellers`}
+              onClick={() => setMegaOpen(false)}
+              className="group block"
+            >
+              <img src={selectedCategory.image} alt="" className="aspect-3/4 w-full rounded-md object-cover transition-transform group-hover:scale-105" />
+              <span className="block text-center text-xs font-semibold uppercase tracking-wider text-[#333] mt-2">Bestsellers</span>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          4. MOBILE HAMBURGER MENU DRAWER (MATCHING SCREENSHOTS 1, 2, 3)
+          ========================================================================= */}
       {drawerOpen && (
         <div className="fixed inset-0 z-50 flex lg:hidden">
+          {/* BACKDROP */}
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity" onClick={closeDrawer} />
 
-          <div className="relative z-50 w-[90vw] max-w-95 h-full bg-white shadow-2xl flex flex-col overflow-y-auto animate-in slide-in-from-left duration-300">
-            {/* TOP CLOSE BAR */}
-            <div className="p-4 border-b border-[#f0f0f0] flex items-center justify-end sticky top-0 bg-white z-10">
+          {/* SLIDE-IN DRAWER */}
+          <div className="relative z-50 w-[92vw] max-w-105 h-full bg-white shadow-2xl flex flex-col overflow-y-auto animate-in slide-in-from-left duration-300">
+            {/* TOP BRAND & CLOSE BAR */}
+            <div className="p-4 border-b border-[#f0f0f0] flex items-center justify-between sticky top-0 bg-white z-10">
+              <span className="font-sans text-[18px] font-bold tracking-[0.25em] text-[#111] uppercase">
+                SUGRA
+              </span>
               <button type="button" onClick={closeDrawer} className="p-1 text-[#111] hover:text-[#875c35]">
-                <X size={22} strokeWidth={1.5} />
+                <X size={22} />
               </button>
             </div>
 
-            {/* SINGLE VERTICAL MOBILE LIST CONTAINING ALL SECTIONS */}
-            <div className="px-4 py-2 flex-1 divide-y divide-[#e5e0dc]">
-
-              {/* 1. Shop by Category */}
-              <div className="py-2">
+            <div className="p-4 space-y-6 flex-1">
+              {/* ACCORDION 1: SHOP BY CATEGORY (SCREENSHOT 1) */}
+              <div className="border-b border-[#f0f0f0] pb-4">
                 <button
                   type="button"
-                  onClick={() => setExpandedSection(expandedSection === 'category' ? null : 'category')}
-                  className="w-full flex items-center justify-between py-3 text-[14px] font-bold tracking-wide text-[#111]"
+                  onClick={() => toggleAccordion('category')}
+                  className="w-full flex items-center justify-between text-[16px] font-serif font-medium text-[#111] tracking-wide mb-3"
                 >
                   <span>Shop by Category</span>
-                  {expandedSection === 'category' ? <Minus size={16} /> : <Plus size={16} />}
+                  {openAccordions.category ? <Minus size={18} className="text-[#555]" /> : <Plus size={18} className="text-[#555]" />}
                 </button>
-                {expandedSection === 'category' && (
-                  <div className="pb-3 pt-1">
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { name: 'Necklaces & Chains', img: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=300&q=80', query: 'necklaces' },
-                        { name: 'Bracelets', img: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=300&q=80', query: 'bracelets' },
-                        { name: 'Earrings', img: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=300&q=80', query: 'earrings' },
-                        { name: 'Rings', img: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=300&q=80', query: 'rings' },
-                        { name: "Men's Chains", img: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=300&q=80', query: 'mens-chains' },
-                        { name: 'Jewellery Sets', img: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=300&q=80', query: 'sets' },
-                        { name: 'Anklets', img: 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=300&q=80', query: 'anklets' },
-                        { name: 'Mangalsutras', img: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=300&q=80', query: 'mangalsutra' },
-                      ].map((item) => (
+
+                {openAccordions.category && (
+                  <div>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {mobileCategories.map((item) => (
                         <Link
                           key={item.name}
-                          to={`/collections/all?category=${item.query}`}
+                          to={item.link}
                           onClick={closeDrawer}
-                          className="flex items-center justify-between p-2 bg-[#f7f5f2] rounded-md hover:bg-[#efece6] transition-colors"
+                          className="flex items-center justify-between p-3 rounded-md bg-[#f6f6f6] hover:bg-[#eee] transition-colors group"
                         >
-                          <span className="text-[11px] font-semibold text-[#111] leading-tight pr-1">{item.name}</span>
-                          <img src={item.img} alt="" className="w-10 h-10 object-cover rounded-xs shrink-0" />
+                          <span className="text-[13px] font-medium text-[#222] leading-tight pr-2">
+                            {item.name}
+                          </span>
+                          <img
+                            src={item.img}
+                            alt={item.name}
+                            className="h-10 w-10 object-contain shrink-0 group-hover:scale-110 transition-transform"
+                          />
                         </Link>
                       ))}
                     </div>
-                    <Link to="/collections/all" onClick={closeDrawer} className="block text-center text-xs font-bold uppercase tracking-wider text-[#111] underline mt-3">
-                      View all
-                    </Link>
+                    <div className="text-center mt-3">
+                      <Link
+                        to="/collections/all"
+                        onClick={closeDrawer}
+                        className="text-[13px] font-medium text-[#111] underline hover:text-[#875c35]"
+                      >
+                        View all
+                      </Link>
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* 2. Shop by Occasion */}
-              <div className="py-2">
+              {/* ACCORDION 2: SHOP BY COLLECTION (SCREENSHOT 2) */}
+              <div className="border-b border-[#f0f0f0] pb-4">
                 <button
                   type="button"
-                  onClick={() => setExpandedSection(expandedSection === 'occasion' ? null : 'occasion')}
-                  className="w-full flex items-center justify-between py-3 text-[14px] font-bold tracking-wide text-[#111]"
-                >
-                  <span>Shop by Occasion</span>
-                  {expandedSection === 'occasion' ? <Minus size={16} /> : <Plus size={16} />}
-                </button>
-                {expandedSection === 'occasion' && (
-                  <div className="pb-3 pt-1 space-y-2 text-xs uppercase tracking-wider text-[#444]">
-                    <Link to="/collections/all?occasion=party" onClick={closeDrawer} className="block py-1 hover:text-black">Party Wear</Link>
-                    <Link to="/collections/all?occasion=festive" onClick={closeDrawer} className="block py-1 hover:text-black">Festive Special</Link>
-                    <Link to="/collections/all?occasion=office" onClick={closeDrawer} className="block py-1 hover:text-black">Office Chic</Link>
-                    <Link to="/collections/all?occasion=vacation" onClick={closeDrawer} className="block py-1 hover:text-black">Vacation Vibe</Link>
-                  </div>
-                )}
-              </div>
-
-              {/* 3. Shop by Collection */}
-              <div className="py-2">
-                <button
-                  type="button"
-                  onClick={() => setExpandedSection(expandedSection === 'collection' ? null : 'collection')}
-                  className="w-full flex items-center justify-between py-3 text-[14px] font-bold tracking-wide text-[#111]"
+                  onClick={() => toggleAccordion('collection')}
+                  className="w-full flex items-center justify-between text-[16px] font-serif font-medium text-[#111] tracking-wide mb-3"
                 >
                   <span>Shop by Collection</span>
-                  {expandedSection === 'collection' ? <Minus size={16} /> : <Plus size={16} />}
+                  {openAccordions.collection ? <Minus size={18} className="text-[#555]" /> : <Plus size={18} className="text-[#555]" />}
                 </button>
-                {expandedSection === 'collection' && (
-                  <div className="pb-3 pt-1">
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { name: 'AM To PM Collection', img: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=300&q=80', query: 'am-pm' },
-                        { name: 'Emily In Paris', img: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=300&q=80', query: 'emily-in-paris' },
-                        { name: 'Signature Collection', img: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=300&q=80', query: 'signature' },
-                        { name: 'Forever Casual', img: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=300&q=80', query: 'forever-casual' },
-                        { name: 'On You Collection', img: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=300&q=80', query: 'on-you' },
-                        { name: 'Pearl Collection', img: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=300&q=80', query: 'pearl' },
-                      ].map((item) => (
+
+                {openAccordions.collection && (
+                  <div>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {mobileCollections.map((item) => (
                         <Link
                           key={item.name}
-                          to={`/collections/all?collection=${item.query}`}
+                          to={item.link}
                           onClick={closeDrawer}
-                          className="flex items-center justify-between p-2 bg-[#f7f5f2] rounded-md hover:bg-[#efece6] transition-colors"
+                          className="flex items-center justify-between p-3 rounded-md bg-[#f6f6f6] hover:bg-[#eee] transition-colors group"
                         >
-                          <span className="text-[11px] font-semibold text-[#111] leading-tight pr-1">{item.name}</span>
-                          <img src={item.img} alt="" className="w-10 h-10 object-cover rounded-xs shrink-0" />
+                          <span className="text-[13px] font-medium text-[#222] leading-tight pr-2">
+                            {item.name}
+                          </span>
+                          <img
+                            src={item.img}
+                            alt={item.name}
+                            className="h-10 w-10 object-contain shrink-0 group-hover:scale-110 transition-transform"
+                          />
                         </Link>
                       ))}
                     </div>
-                    <Link to="/collections/all" onClick={closeDrawer} className="block text-center text-xs font-bold uppercase tracking-wider text-[#111] underline mt-3">
-                      View all
-                    </Link>
+                    <div className="text-center mt-3">
+                      <Link
+                        to="/collections/all"
+                        onClick={closeDrawer}
+                        className="text-[13px] font-medium text-[#111] underline hover:text-[#875c35]"
+                      >
+                        View all
+                      </Link>
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* 4. Shop by Gender */}
-              <div className="py-2">
+              {/* ACCORDION 3: SHOP BY GENDER (SCREENSHOT 2) */}
+              <div className="border-b border-[#f0f0f0] pb-4">
                 <button
                   type="button"
-                  onClick={() => setExpandedSection(expandedSection === 'gender' ? null : 'gender')}
-                  className="w-full flex items-center justify-between py-3 text-[14px] font-bold tracking-wide text-[#111]"
+                  onClick={() => toggleAccordion('gender')}
+                  className="w-full flex items-center justify-between text-[16px] font-serif font-medium text-[#111] tracking-wide mb-3"
                 >
                   <span>Shop by Gender</span>
-                  {expandedSection === 'gender' ? <Minus size={16} /> : <Plus size={16} />}
+                  {openAccordions.gender ? <Minus size={18} className="text-[#555]" /> : <Plus size={18} className="text-[#555]" />}
                 </button>
-                {expandedSection === 'gender' && (
-                  <div className="pb-3 pt-1">
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { name: 'Men', img: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=300&q=80', query: 'men' },
-                        { name: 'Women', img: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=300&q=80', query: 'women' },
-                      ].map((item) => (
+
+                {openAccordions.gender && (
+                  <div>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {mobileGenders.map((item) => (
                         <Link
                           key={item.name}
-                          to={`/collections/all?gender=${item.query}`}
+                          to={item.link}
                           onClick={closeDrawer}
-                          className="flex items-center justify-between p-2 bg-[#f7f5f2] rounded-md hover:bg-[#efece6] transition-colors"
+                          className="flex items-center justify-between p-3 rounded-md bg-[#f6f6f6] hover:bg-[#eee] transition-colors group"
                         >
-                          <span className="text-[11px] font-semibold text-[#111] leading-tight pr-1">{item.name}</span>
-                          <img src={item.img} alt="" className="w-10 h-10 object-cover rounded-xs shrink-0" />
+                          <span className="text-[13px] font-medium text-[#222] leading-tight pr-2">
+                            {item.name}
+                          </span>
+                          <img
+                            src={item.img}
+                            alt={item.name}
+                            className="h-10 w-10 object-contain shrink-0 group-hover:scale-110 transition-transform"
+                          />
                         </Link>
                       ))}
                     </div>
-                    <Link to="/collections/all" onClick={closeDrawer} className="block text-center text-xs font-bold uppercase tracking-wider text-[#111] underline mt-3">
-                      View all
-                    </Link>
+                    <div className="text-center mt-3">
+                      <Link
+                        to="/collections/all"
+                        onClick={closeDrawer}
+                        className="text-[13px] font-medium text-[#111] underline hover:text-[#875c35]"
+                      >
+                        View all
+                      </Link>
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* 5. Gifting */}
-              <div className="py-2">
+              {/* ACCORDION 4: GIFTING (SCREENSHOT 3) */}
+              <div className="border-b border-[#f0f0f0] pb-4">
                 <button
                   type="button"
-                  onClick={() => setExpandedSection(expandedSection === 'gifting' ? null : 'gifting')}
-                  className="w-full flex items-center justify-between py-3 text-[14px] font-bold tracking-wide text-[#111]"
+                  onClick={() => toggleAccordion('gifting')}
+                  className="w-full flex items-center justify-between text-[16px] font-serif font-medium text-[#111] tracking-wide mb-3"
                 >
                   <span>Gifting</span>
-                  {expandedSection === 'gifting' ? <Minus size={16} /> : <Plus size={16} />}
+                  {openAccordions.gifting ? <Minus size={18} className="text-[#555]" /> : <Plus size={18} className="text-[#555]" />}
                 </button>
-                {expandedSection === 'gifting' && (
-                  <div className="pb-3 pt-1">
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { name: 'Gifts for Sister', img: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=300&q=80', query: 'sister' },
-                        { name: 'Gifts for Brother', img: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=300&q=80', query: 'brother' },
-                        { name: 'Gift Cards', img: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=300&q=80', query: 'gift-cards' },
-                        { name: 'Gifts for Mother', img: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=300&q=80', query: 'mother' },
-                      ].map((item) => (
+
+                {openAccordions.gifting && (
+                  <div>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {mobileGifting.map((item) => (
                         <Link
                           key={item.name}
-                          to={`/collections/all?gifting=${item.query}`}
+                          to={item.link}
                           onClick={closeDrawer}
-                          className="flex items-center justify-between p-2 bg-[#f7f5f2] rounded-md hover:bg-[#efece6] transition-colors"
+                          className="flex items-center justify-between p-3 rounded-md bg-[#f6f6f6] hover:bg-[#eee] transition-colors group"
                         >
-                          <span className="text-[11px] font-semibold text-[#111] leading-tight pr-1">{item.name}</span>
-                          <img src={item.img} alt="" className="w-10 h-10 object-cover rounded-xs shrink-0" />
+                          <span className="text-[13px] font-medium text-[#222] leading-tight pr-2">
+                            {item.name}
+                          </span>
+                          <img
+                            src={item.img}
+                            alt={item.name}
+                            className="h-10 w-10 object-contain shrink-0 group-hover:scale-110 transition-transform"
+                          />
                         </Link>
                       ))}
                     </div>
@@ -524,32 +803,60 @@ export default function StoreHeader() {
                 )}
               </div>
 
-              {/* 6. New Arrivals Link */}
-              <div className="py-3">
+              {/* STANDALONE QUICK NAV LINKS */}
+              <div className="space-y-3 pt-2 font-sans text-[13px] font-semibold tracking-wider uppercase text-[#222]">
+                <Link
+                  to="/collections/all?sort=bestsellers"
+                  onClick={closeDrawer}
+                  className="block py-1 hover:text-[#875c35]"
+                >
+                  Bestsellers
+                </Link>
                 <Link
                   to="/collections/all?sort=newest"
                   onClick={closeDrawer}
-                  className="block text-[14px] font-bold tracking-wide text-[#111] hover:text-[#875c35]"
+                  className="block py-1 hover:text-[#875c35]"
                 >
-                  New Arrivals
+                  New In
                 </Link>
-              </div>
-
-              {/* 7. Track Order Link */}
-              <div className="py-3">
+                <Link
+                  to="/collections/all?category=rakhi"
+                  onClick={closeDrawer}
+                  className="block py-1 hover:text-[#875c35]"
+                >
+                  Rakhi Gifts
+                </Link>
+                <Link
+                  to="/collections/all"
+                  onClick={closeDrawer}
+                  className="block py-1 text-[#b47e43] font-bold"
+                >
+                  VIP Membership
+                </Link>
                 <Link
                   to="/track-order"
                   onClick={closeDrawer}
-                  className="block text-[14px] font-bold tracking-wide text-[#111] hover:text-[#875c35]"
+                  className="block py-1 hover:text-[#875c35]"
                 >
                   Track Order
                 </Link>
+                <Link
+                  to={isLoggedIn ? '/account' : '/login'}
+                  onClick={closeDrawer}
+                  className="block py-1 hover:text-[#875c35] border-t border-[#f0f0f0] pt-3 text-[#875c35]"
+                >
+                  {isLoggedIn ? 'My Account' : 'Sign In / Register'}
+                </Link>
               </div>
-
             </div>
           </div>
         </div>
       )}
+
+      {/* =========================================================================
+          5. PALMONAS-STYLE SLIDE-OVER CART DRAWER
+          ========================================================================= */}
+      <CartDrawer isOpen={cartDrawerOpen} onClose={() => setCartDrawerOpen(false)} />
     </header>
   )
 }
