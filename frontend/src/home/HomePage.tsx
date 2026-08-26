@@ -11,7 +11,6 @@ import ShopTheLook from './components/ShopTheLook'
 import WhatsappCommunity from './components/WhatsappCommunity'
 import InstagramGrid from './components/InstagramGrid'
 import FaqSection from './components/FaqSection'
-import Newsletter from './components/Newsletter'
 import StoreFooter from './components/StoreFooter'
 import './home.css'
 
@@ -69,8 +68,7 @@ export default function HomePage() {
         {/* FAQ ACCORDION */}
         <FaqSection />
 
-        {/* VIP NEWSLETTER */}
-        <Newsletter />
+
       </main>
 
       {/* LUXURY STORE FOOTER */}
